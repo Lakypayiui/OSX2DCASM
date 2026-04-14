@@ -10,7 +10,6 @@ class MatrizRegla:
 
     def __init__(self):
         self.data = [[0] * 32 for _ in range(16)] 
-        self.data[0][0] = 1  
 
     def toggle(self, row, col):
         self.data[row][col] ^= 1
@@ -19,8 +18,6 @@ class MatrizRegla:
         for i in range(16):
             for j in range(32):
                 self.data[i][j] = 0
-                if i==0 and j==0:
-                    self.data[i][j] = 1
 
     def randomize(self, p=0.4):
         rng = random.Random(int(time.time()))
@@ -64,7 +61,7 @@ class MatrizRegla:
             for j in range(32):
                 if rects[i][j].collidepoint(pos):
                     self.toggle(i, j)
-                    return i, j
+                    return i*32 + j
         return None
 
     def draw(self, surf, rects, font):

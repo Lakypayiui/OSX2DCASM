@@ -51,6 +51,13 @@ class Kernel3x3:
                 return i
         return None
 
+    def set_kernel_mask(self, num):
+        """Setea el kernel segun un entero de 9 bits."""
+        if num < 0 or num > 0x1FF:
+            raise ValueError("Kernel mask must be a 9-bit integer (0-511).")
+        for i in range(9):
+            self.bits[i] = (num >> i) & 1
+
     def apply_to_matrix(self, matriz_regla):
         """
         Recalcula la regla completa segun el kernel y la escribe

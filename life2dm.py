@@ -20,7 +20,6 @@ class Life2DM:
      
     def sync_rule_from_matrix(self, matrix_data):
         """matrix_data: lista[16][32]  -> self.rule[512]"""
-        print(matrix_data)
         for i in range(16):
             for j in range(32):
                 idx = i * 32 + j

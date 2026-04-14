@@ -18,11 +18,14 @@ class ACOSXM:
         self.screen = pygame.display.set_mode((WIN_W, WIN_H))
         self.clock  = pygame.time.Clock()
 
+        # Tamaño de botones y gap entre ellos en el panel
+        BW, BH, BGAP = 183, 22, 4
+
         # Fuentes
-        self.fn  = pygame.font.SysFont("monospace",  9)
-        self.fm  = pygame.font.SysFont("monospace", 11)
-        self.fb  = pygame.font.SysFont("monospace", 11, bold=True)
-        self.fxs = pygame.font.SysFont("monospace",  8)
+        self.fn  = pygame.font.SysFont("monospace",  10)
+        self.fm  = pygame.font.SysFont("monospace", 12)
+        self.fb  = pygame.font.SysFont("monospace", 14, bold=True)
+        self.fxs = pygame.font.SysFont("monospace",  12)
 
         self.show_panel = True
 
@@ -57,7 +60,8 @@ class ACOSXM:
         self.y_sep1 = y - 4
 
         # Encabezado kernel
-        self.y_kern_hdr = y; y += 14
+        self.y_kern_hdr = y 
+        y += 18 
 
         # Kernel 3x3  (izquierda)
         KERN_X = PAD
@@ -66,13 +70,19 @@ class ACOSXM:
         # Info del kernel (a la derecha del kernel)
         self.x_kern_info = KERN_X + self.kernel.total_w + 16
         self.y_kern_info = y
-        y += self.kernel.total_h + PAD + 4
+        
+
+        # Boton Agregar kernel (a la derecha de la info del kernel)
+        self.btn_agregar_kernel = Button((PANEL_W/2, y, BW, BH), "Agregar kernel",
+                                        toggle=False, bg=BTN_OFF_BG, bg_on=BTN_ON_BG)
+        
+        y += self.kernel.total_h + (PAD*2) + 4
 
         # Separador
-        self.y_sep2 = y - 4
+        self.y_sep2 = y
+        y += PAD
 
         # Botones de accion
-        BW, BH, BGAP = 183, 22, 4
 
         def btn_panel(label, col, yy, toggle=False,
                 bg=BTN_OFF_BG, bg_on=(170, 55, 55)):
@@ -86,8 +96,8 @@ class ACOSXM:
         self.btn_evolucion   = btn_panel("Evolucion", 0, y,
                                    toggle=True, bg=(45, 120, 60))
         self.btn_regla110    = btn_panel("Regla 110",          1, y);  y += BH + BGAP
-        self.btn_limpiar_vis = btn_panel("Limpiar vista",      0, y)
-        self.btn_agregar_kernel = btn_panel("Agregar kernel",      1, y);  y += BH + PAD * 2
+        self.btn_limpiar_vis = btn_panel("Limpiar vista",      0, y);  y += BH + PAD * 2
+        #self.btn_agregar_kernel = btn_panel("Agregar kernel",      1, y)
 
         # Slider densidad
         self.y_den_lbl = y; y += 13
@@ -184,9 +194,12 @@ class ACOSXM:
             # Clic en la matriz de la regla
             if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
                 res = self.matriz_regla.handle_click(ev.pos, self.mat_rects)
+                print(f"Click en matriz regla: {res}")
                 if res is not None:
                     # Sincronizar con Life2DM
                     self.life.sync_rule_from_matrix(self.matriz_regla.data)
+                    # Mostrar mascara del kernel
+                    self.kernel.set_kernel_mask(res)
 
             # Clic en el kernel 3x3
             if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
