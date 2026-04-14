@@ -23,7 +23,7 @@ except ImportError:
     print("[GPU] Usando OpenGL fallback")
 
 # ── Parámetros ────────────────────────────────────────────────────────────────
-SIZE        = 200
+SIZE        = 100
 GENERATIONS = 500
 
 history = np.random.randint(0, 2, (GENERATIONS, SIZE, SIZE))
@@ -40,7 +40,7 @@ print(f"[Sim] Generaciones: {GENERATIONS}, Células vivas: {N}")
 # ── Matrices (column-major, convención OpenGL/WGSL) ──────────────────────────
 CX = SIZE        / 2.0
 CY = SIZE        / 2.0
-CZ = GENERATIONS / 2.0
+CZ = GENERATIONS 
 
 BASE_DIST = 50.0
 ZOOM_MIN  = 5.0
@@ -67,24 +67,49 @@ def rot_y_mat(deg):
     a = np.radians(deg); c, s = float(np.cos(a)), float(np.sin(a))
     return np.array([[c,0,s,0],[0,1,0,0],[-s,0,c,0],[0,0,0,1]], dtype=np.float32)
 
-def compute_mvp(rx, ry, dist):
+def compute_mvp(rx, ry, dist, cam_x, cam_y, cam_z):
     proj  = perspective(45, 1000/800, 0.1, 1e9)
-    view  = translate(0, 0, -dist) @ translate(-CX, -CY, -CZ)
+    view = translate(-cam_x, -cam_y, -dist - cam_z) @ translate(-CX, -CY, -CZ)
     model = translate(CX,CY,CZ) @ rot_y_mat(ry) @ rot_x_mat(rx) @ translate(-CX,-CY,-CZ)
     return proj @ view @ model
 
 # ── Geometría del cubo ────────────────────────────────────────────────────────
 def make_cube_geometry():
     s = 0.48
+
     faces = np.array([
+        # FRONT (0,0,1)
         [-s,-s, s],[ s,-s, s],[ s, s, s],  [-s,-s, s],[ s, s, s],[-s, s, s],
+
+        # BACK (0,0,-1)
         [-s,-s,-s],[-s, s,-s],[ s, s,-s],  [-s,-s,-s],[ s, s,-s],[ s,-s,-s],
+
+        # LEFT (-1,0,0)
         [-s,-s,-s],[-s,-s, s],[-s, s, s],  [-s,-s,-s],[-s, s, s],[-s, s,-s],
+
+        # RIGHT (1,0,0)
         [ s,-s,-s],[ s, s,-s],[ s, s, s],  [ s,-s,-s],[ s, s, s],[ s,-s, s],
+
+        # TOP (0,1,0)
         [-s, s,-s],[-s, s, s],[ s, s, s],  [-s, s,-s],[ s, s, s],[ s, s,-s],
+
+        # BOTTOM (0,-1,0)
         [-s,-s,-s],[ s,-s,-s],[ s,-s, s],  [-s,-s,-s],[ s,-s, s],[-s,-s, s],
     ], dtype=np.float32)
+
+    # normales por cara (6 vértices por cara)
+    normals = np.array([
+        [0,0,1]]*6 +
+        [[0,0,-1]]*6 +
+        [[-1,0,0]]*6 +
+        [[1,0,0]]*6 +
+        [[0,1,0]]*6 +
+        [[0,-1,0]]*6,
+        dtype=np.float32
+    )
+
     face_flags = np.zeros(len(faces), dtype=np.float32)
+
     edges = np.array([
         [-s,-s,-s],[ s,-s,-s], [ s,-s,-s],[ s, s,-s],
         [ s, s,-s],[-s, s,-s], [-s, s,-s],[-s,-s,-s],
@@ -93,11 +118,13 @@ def make_cube_geometry():
         [-s,-s,-s],[-s,-s, s], [ s,-s,-s],[ s,-s, s],
         [ s, s,-s],[ s, s, s], [-s, s,-s],[-s, s, s],
     ], dtype=np.float32)
+
     edge_flags = np.ones(len(edges), dtype=np.float32)
-    return faces, face_flags, edges, edge_flags
+
+    return faces, normals, face_flags, edges, edge_flags
 
 
-if USE_WGPU:
+if USE_WGPU and IS_MACOS:
     import glfw
     import ctypes
     import Metal        # pyobjc-framework-Metal
@@ -243,7 +270,7 @@ fragment float4 frag_main(VertOut in [[stage_in]]) {
     cmd_queue = device.newCommandQueue()
 
     # ── Geometría ──────────────────────────────────────────────────────────
-    faces, face_flags, edges, edge_flags = make_cube_geometry()
+    faces, normals, face_flags, edges, edge_flags = make_cube_geometry()
 
     def interleave(verts, flags):
         return np.column_stack([verts, flags]).astype(np.float32)
@@ -374,24 +401,54 @@ else:
 
     VERT_GLSL = """
 #version 410 core
+
 layout(location=0) in vec3  in_vert;
 layout(location=1) in float in_edge;
 layout(location=2) in vec3  in_offset;
+layout(location=3) in vec3  in_normal;
+
 uniform mat4 mvp;
+
 out float v_edge;
+out vec3 v_normal;
+
 void main() {
+    // posición del centro del cubo en clip space
+    vec4 center = mvp * vec4(in_offset, 1.0);
+
+    // Frustum culling (clip space)
+    if (abs(center.x) > center.w ||
+        abs(center.y) > center.w ||
+        abs(center.z) > center.w) {
+        // mandar fuera del frustum
+        gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+        return;
+    }
+
+    // posición final del vértice
     gl_Position = mvp * vec4(in_vert + in_offset, 1.0);
+
     v_edge = in_edge;
+    v_normal = in_normal;
 }
 """
+
     FRAG_GLSL = """
 #version 410 core
 in  float v_edge;
+in vec3 v_normal;
 out vec4  fragColor;
 void main() {
-    fragColor = (v_edge > 0.5)
-        ? vec4(0.0,1.0,0.0,1.0)
-        : vec4(1.0,1.0,1.0,1.0);
+    vec3 light_dir = normalize(vec3(1.0, 1.0, 1.0)); // dirección de luz
+    float diff = max(dot(normalize(v_normal), light_dir), 0.2);
+
+    vec3 baseColor = (v_edge > 0.5)
+        ? vec3(0.2, 0.2, 1.0)   // bordes
+        : vec3(1.0, 1.0, 1.0);  // caras
+
+    vec3 color = baseColor * diff;
+
+    fragColor = vec4(color, 1.0);
 }
 """
 
@@ -431,7 +488,7 @@ void main() {
     glUseProgram(prog)
     mvp_loc = glGetUniformLocation(prog, "mvp")
 
-    faces, face_flags, edges, edge_flags = make_cube_geometry()
+    faces, normals, face_flags, edges, edge_flags = make_cube_geometry()
 
     def build_vao(verts, flags):
         vao = glGenVertexArrays(1)
@@ -440,6 +497,7 @@ void main() {
             (0, verts,       3, 0),
             (1, flags[:,None] if flags.ndim==1 else flags, 1, 0),
             (2, all_points,  3, 1),
+            (3, normals, 3, 0),
         ]:
             vbo = glGenBuffers(1)
             glBindBuffer(GL_ARRAY_BUFFER, vbo)
@@ -457,6 +515,9 @@ void main() {
 
     glEnable(GL_DEPTH_TEST)
     rx = ry = 0.0
+    cam_x, cam_y, cam_z = 0.0, 0.0, 0.0
+    mouse_down = False
+    sensitivity = 0.2
     dist  = BASE_DIST
     clock = pygame.time.Clock()
     running = True
@@ -465,25 +526,41 @@ void main() {
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
                 running = False
+            elif e.type == pygame.MOUSEBUTTONDOWN:
+                if e.button == 1:  # click izquierdo
+                    mouse_down = True
+
+            elif e.type == pygame.MOUSEBUTTONUP:
+                if e.button == 1:
+                    mouse_down = False
+
+            elif e.type == pygame.MOUSEMOTION:
+                if mouse_down:
+                    dx, dy = e.rel
+                    ry += dx * sensitivity
+                    rx += dy * sensitivity
+
             elif e.type == pygame.MOUSEWHEEL:
                 speed = max(1.0, dist * 0.05)
                 dist -= e.y * speed
                 dist  = max(ZOOM_MIN, dist)
+                
             elif e.type == pygame.KEYDOWN:
                 if e.key == pygame.K_r:
-                    rx = ry = 0.0; dist = BASE_DIST
+                    rx = ry = 0.0; dist = BASE_DIST; cam_x = cam_y = cam_z = 0.0
 
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT]:  ry -= 1
-        if keys[pygame.K_RIGHT]: ry += 1
-        if keys[pygame.K_UP]:    rx -= 1
-        if keys[pygame.K_DOWN]:  rx += 1
+        speed = 1.0
+        if keys[pygame.K_LEFT]:  cam_x -= speed
+        if keys[pygame.K_RIGHT]: cam_x += speed
+        if keys[pygame.K_UP]:    cam_y -= speed
+        if keys[pygame.K_DOWN]:  cam_y += speed
         if keys[pygame.K_EQUALS] or keys[pygame.K_PLUS]:
             dist = max(ZOOM_MIN, dist - max(1.0, dist * 0.02))
         if keys[pygame.K_MINUS]:
             dist += max(1.0, dist * 0.02)
 
-        mvp = compute_mvp(rx, ry, dist)
+        mvp = compute_mvp(rx, ry, dist, cam_x, cam_y, cam_z)
         glClearColor(0.05, 0.05, 0.1, 1.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glUseProgram(prog)

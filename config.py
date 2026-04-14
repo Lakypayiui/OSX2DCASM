@@ -25,7 +25,7 @@ SCREEN_H = info.current_h
  
 GRID_W  = 255    # columnas del espacio (RING  / FACTOR)
 GRID_H  = 255      # filas    del espacio (LINES / FACTOR)
-CELL_PX = int(SCREEN_W / GRID_W)      # pixeles por celda
+CELL_PX = 10      # pixeles por celda
 
  
 #  LAYOUT DE LA VENTANA
@@ -33,7 +33,7 @@ CELL_PX = int(SCREEN_W / GRID_W)      # pixeles por celda
 PANEL_W = int(SCREEN_W * 0.4)
 SPACE_W = GRID_W * CELL_PX
 SPACE_H = GRID_H * CELL_PX
-WIN_W   = SPACE_W
+WIN_W   = min(SPACE_W, int(SCREEN_W * 0.9))
 WIN_H   = min(SPACE_H + 20, int(SCREEN_H * 0.9))
 PAD     = 8
 

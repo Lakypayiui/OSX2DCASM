@@ -64,7 +64,6 @@ class Kernel3x3:
         en la MatrizRegla.  Devuelve el ndarray[512].
         """
         m    = self.mask
-        print(f"Kernel mask: {m:09b} ({m})")
         for idx in range(512):
             if (idx) == int(m):
                 matriz_regla.data[idx // 32][idx % 32] = 1

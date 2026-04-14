@@ -1,5 +1,7 @@
 import time
-from config import *
+import config
+import pygame
+import numpy as np
 
 #  LOGICA DEL AUTOMATA  (numpy para velocidad)
  
@@ -10,11 +12,11 @@ class Life2DM:
     rule    : ndarray uint8 [512]  — rule[idx] = 0 o 1
     """
     def __init__(self):
-        self.state   = np.zeros((GRID_H, GRID_W), dtype=np.uint8)
+        self.state   = np.zeros((config.GRID_H, config.GRID_W), dtype=np.uint8)
         self.rule    = np.zeros(512,              dtype=np.uint8)
         self.gen     = 0
         self.running = False
-        self.surf    = pygame.Surface((SPACE_W, SPACE_H))
+        self.surf    = pygame.Surface((config.SPACE_W, config.SPACE_H))
         self.dirty   = True
 
      
@@ -68,22 +70,22 @@ class Life2DM:
 
     def random_fill(self, density):
         rng = np.random.default_rng(int(time.time() * 1000) & 0xFFFFFFFF)
-        self.state = (rng.random((GRID_H, GRID_W)) < density).astype(np.uint8)
+        self.state = (rng.random((config.GRID_H, config.GRID_W)) < density).astype(np.uint8)
         self.gen   = 0
         self.dirty = True
 
     def rule110_fill(self, density):
-        nb  = rule_binary(110)
+        nb  = config.rule_binary(110)
         rng = np.random.default_rng(int(time.time() * 1000) & 0xFFFFFFFF)
-        row = (rng.random(GRID_W) < density).astype(np.uint8)
+        row = (rng.random(config.GRID_W) < density).astype(np.uint8)
         self.state[:] = 0
         self.state[0] = row
-        for i in range(1, GRID_H):
-            new_row = np.zeros(GRID_W, dtype=np.uint8)
-            for j in range(GRID_W):
-                l = int(row[(j - 1) % GRID_W])
+        for i in range(1, config.GRID_H):
+            new_row = np.zeros(config.GRID_W, dtype=np.uint8)
+            for j in range(config.GRID_W):
+                l = int(row[(j - 1) % config.GRID_W])
                 cv = int(row[j])
-                r  = int(row[(j + 1) % GRID_W])
+                r  = int(row[(j + 1) % config.GRID_W])
                 new_row[j] = nb[l * 4 + cv * 2 + r]
             self.state[i] = new_row
             row = new_row
@@ -91,7 +93,7 @@ class Life2DM:
         self.dirty = True
 
     def toggle_cell(self, cx, cy):
-        if 0 <= cx < GRID_W and 0 <= cy < GRID_H:
+        if 0 <= cx < config.GRID_W and 0 <= cy < config.GRID_H:
             self.state[cy, cx] ^= 1
             self.dirty = True
 
@@ -109,15 +111,15 @@ class Life2DM:
 
         # Construir array RGB rapidamente con numpy
         # Dimensiones: (SPACE_H, SPACE_W, 3)
-        rgb = np.empty((SPACE_H, SPACE_W, 3), dtype=np.uint8)
+        rgb = np.empty((config.SPACE_H, config.SPACE_W, 3), dtype=np.uint8)
         rgb[:] = bg
 
         # Rellenar celdas vivas
         ys, xs = np.where(self.state == 1)
         for cx, cy in zip(xs, ys):
-            px = cx * CELL_PX + 1
-            py = cy * CELL_PX + 1
-            rgb[py : py + CELL_PX - 1, px : px + CELL_PX - 1] = cell
+            px = cx * config.CELL_PX + 1
+            py = cy * config.CELL_PX + 1
+            rgb[py : py + config.CELL_PX - 1, px : px + config.CELL_PX - 1] = cell
 
         # Volcar a surface (surfarray espera shape (W, H, 3))
         pygame.surfarray.blit_array(self.surf,
@@ -125,10 +127,10 @@ class Life2DM:
                                         np.transpose(rgb, (1, 0, 2))))
 
         # Malla
-        for x in range(0, SPACE_W + 1, CELL_PX):
-            pygame.draw.line(self.surf, grid, (x, 0), (x, SPACE_H))
-        for y in range(0, SPACE_H + 1, CELL_PX):
-            pygame.draw.line(self.surf, grid, (0, y), (SPACE_W, y))
+        for x in range(0, config.SPACE_W + 1, config.CELL_PX):
+            pygame.draw.line(self.surf, grid, (x, 0), (x, config.SPACE_H))
+        for y in range(0, config.SPACE_H + 1, config.CELL_PX):
+            pygame.draw.line(self.surf, grid, (0, y), (config.SPACE_W, y))
 
         self.dirty = False
 
