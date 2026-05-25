@@ -4,7 +4,9 @@ import platform
 import os
 import sys
 import numpy as np
+import config
 from widgets.button import Button
+from widgets.rgbselector import RGBSelector
 from widgets.slider import Slider
 
 PLATFORM    = platform.system()
@@ -20,14 +22,14 @@ class Display3D:
     def __init__(self, history, width=1000, height=800):
         self.width = width
         self.height = height
-        self.history = history
+        self.history = np.array(history)
         self.chunk_size = 16
         self.cube_size = 0.48
-        self.generations, self.size_x, self.size_y = history.shape
+        self.generations, self.size_x, self.size_y = self.history.shape
         pts_list = []
 
         for g in range(self.generations):
-            x, y = np.where(history[g] == 1)
+            x, y = np.where(self.history[g] == 1)
             z    = np.full_like(x, g)
             pts_list.append(np.column_stack((x, y, z)).astype(np.float32))
 
@@ -641,8 +643,8 @@ class Display3D:
                 speed = 1.0
                 if keys[pygame.K_LEFT]:  cam_x -= speed
                 if keys[pygame.K_RIGHT]: cam_x += speed
-                if keys[pygame.K_UP]:    cam_y -= speed
-                if keys[pygame.K_DOWN]:  cam_y += speed
+                if keys[pygame.K_UP]:    cam_y += speed
+                if keys[pygame.K_DOWN]:  cam_y -= speed
                 if keys[pygame.K_EQUALS] or keys[pygame.K_PLUS]:
                     dist = max(self.zoom_min, dist - max(1.0, dist * 0.1))
                 if keys[pygame.K_MINUS]:
@@ -717,21 +719,3 @@ class Display3D:
 
             pygame.quit()
 
-GENERATIONS = 100
-SIZE        = 100
-
-
-history = np.random.choice(
-    [0, 1],
-    size=(GENERATIONS, SIZE, SIZE),
-    p=[0.8, 0.2]  # 80% ceros, 20% unos
-)
-
-display = Display3D(history)
-
-
-if display.use_wgpu and IS_MACOS:
-    display.macos_3d_render()
-
-else:
-    display.open_gl_render()

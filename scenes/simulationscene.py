@@ -1,15 +1,20 @@
 import sys
 import pygame
+from multiprocessing import Process
 
 import config
 
 from life2dm import Life2DM
 from matrizregla import MatrizRegla
 from kernel import Kernel3x3
+from display3d import Display3D
 
 from widgets.button import Button
 from widgets.slider import Slider
 from widgets.rgbselector import RGBSelector
+
+def open_gl_window(renderer):
+        renderer.open_gl_render()
 
 
 class SimulationScene:
@@ -23,10 +28,10 @@ class SimulationScene:
         self.grid_height = height
 
         # Fuentes
-        self.fn  = pygame.font.SysFont("monospace", 10)
-        self.fm  = pygame.font.SysFont("monospace", 12)
+        self.fn  = pygame.font.SysFont("monospace", 14)
+        self.fm  = pygame.font.SysFont("monospace", 14)
         self.fb  = pygame.font.SysFont("monospace", 14, bold=True)
-        self.fxs = pygame.font.SysFont("monospace", 12)
+        self.fxs = pygame.font.SysFont("monospace", 14)
 
         # Estado
         self.running = True
@@ -36,6 +41,7 @@ class SimulationScene:
         # Automata
         self.matriz_regla = MatrizRegla()
         self.life = Life2DM(width, height)
+        self.history = []
 
         # Panel
         BW, BH, BGAP = 183, 22, 4
@@ -67,34 +73,23 @@ class SimulationScene:
         self.y_sep1 = y - 4
 
         self.y_kern_hdr = y
-        y += 18
+        y += 14
 
-        KERN_X = config.PAD
+        KERN_X = MAT_X0
 
         self.kernel = Kernel3x3(KERN_X, y)
 
         self.x_kern_info = KERN_X + self.kernel.total_w + 16
         self.y_kern_info = y
 
-        self.btn_agregar_kernel = Button(
-            (config.PANEL_W / 2, y, BW, BH),
-            "Add kernel",
-            toggle=False,
-            bg=config.BTN_OFF_BG,
-            bg_on=config.BTN_ON_BG
-        )
+        # =========================================================
+        # HELPERS
+        # =========================================================
 
-        y += self.kernel.total_h + (config.PAD * 2) + 4
-
-        self.y_sep2 = y
-
-        y += config.PAD
-
-        # Helper botones
         def btn_panel(label, col, yy,
-                      toggle=False,
-                      bg=config.BTN_OFF_BG,
-                      bg_on=(170, 55, 55)):
+                    toggle=False,
+                    bg=config.BTN_OFF_BG,
+                    bg_on=(170, 55, 55)):
 
             return Button(
                 (config.PAD + col * (BW + BGAP), yy, BW, BH),
@@ -104,53 +99,61 @@ class SimulationScene:
                 bg_on=bg_on
             )
 
+        # =========================================================
+        # RULES
+        # =========================================================
+
+        self.btn_agregar_kernel = btn_panel(
+            "Add kernel",
+            2,
+            y
+        )
+
+        y += BH + BGAP
+
+        self.btn_regla_aleat = btn_panel(
+            "Random rule",
+            2,
+            y
+        )
+
+        y += BH + BGAP
+
+        self.btn_limpiar_reg = btn_panel(
+            "Clear rule",
+            2,
+            y
+        )
+
+        y += config.PAD + 80
+
+        self.y_sep2 = y
+
+        y += config.PAD
+
+        # =========================================================
+        # POPULATION SECTION
+        # =========================================================
+
+        self.y_population_hdr = y
+
+        y += 25
+
         self.btn_conf_aleat = btn_panel(
             "Random config",
             0,
             y
         )
 
-        self.btn_regla_aleat = btn_panel(
-            "Random rule",
-            1,
-            y
-        )
-
-        y += BH + BGAP
-
-        self.btn_evol_paso = btn_panel(
-            "Step by step",
-            0,
-            y
-        )
-
-        self.btn_limpiar_reg = btn_panel(
-            "Clear rule",
-            1,
-            y
-        )
-
-        y += BH + BGAP
-
-        self.btn_evolucion = btn_panel(
-            "Evolution",
-            0,
-            y,
-            toggle=True,
-            bg=(45, 120, 60)
-        )
-
-        y += BH + BGAP
-
         self.btn_limpiar_vis = btn_panel(
             "Clear view",
-            0,
+            1,
             y
         )
 
-        y += BH + config.PAD * 2
+        y += BH + BGAP + 4
 
-        # Slider
+        # Density slider
         self.y_den_lbl = y
 
         y += 13
@@ -160,16 +163,61 @@ class SimulationScene:
             value=0.5
         )
 
-        y += 30 + config.PAD
+        y += 40 + config.PAD
+
+
+        # =========================================================
+        # EVOLUTION SECTION
+        # =========================================================
+
+        self.y_evolution_hdr = y
+
+        y += 25
+
+        self.btn_evolucion = btn_panel(
+            "Start",
+            0,
+            y,
+            toggle=True,
+            bg=(45, 120, 60)
+        )
+
+        self.btn_evol_paso = btn_panel(
+            "Step",
+            1,
+            y
+        )
+
+        y += BH + BGAP
+
+        self.btn_pause = btn_panel(
+            "Pause",
+            0,
+            y,
+            toggle=True,
+        )
+
+        self.btn_view_3d = btn_panel(
+            "3D View",
+            1,
+            y
+        )
+
+        y += BH + BGAP
+
+        self.btn_save = btn_panel(
+            "Save",
+            0,
+            y
+        )
+
+
+        y += 40
 
         # Temas
         self.y_tema_lbl = y
 
         y += 13
-
-        TBW = (config.PANEL_W - config.PAD) // len(config.COLOR_THEMES) - 2
-
-        self.tema_btns = []
 
         self.bg_color_selectors = []
 
@@ -181,24 +229,6 @@ class SimulationScene:
                 (bx, y, CSW, 80), initial=self.theme[lc.lower().replace(" ", "")]
             ))
 
-        bx = config.PAD + idx * (CSW + 2)
-
-        y += 17 + config.PAD
-        
-
-        for idx, t in enumerate(config.COLOR_THEMES):
-
-            bx = config.PAD + idx * (TBW + 2)
-
-            self.tema_btns.append(
-                Button(
-                    (bx, y, TBW, 17),
-                    t["name"][:6],
-                    bg=(38, 38, 46),
-                    fg=config.BTN_OFF_FG
-                )
-            )
-
         y += 17 + config.PAD
 
         self.y_info = y
@@ -207,6 +237,9 @@ class SimulationScene:
             self.btn_conf_aleat,
             self.btn_regla_aleat,
             self.btn_evol_paso,
+            self.btn_pause,
+            self.btn_save,
+            self.btn_view_3d,
             self.btn_limpiar_reg,
             self.btn_evolucion,
             self.btn_limpiar_vis,
@@ -214,7 +247,7 @@ class SimulationScene:
             self.btn_ocultar_panel
         ]
 
-        self._all_btns = self._action_btns + self.tema_btns
+        self._all_btns = self._action_btns
 
         self.panel_surf = pygame.Surface(
             (config.PANEL_W, config.WIN_H)
@@ -342,6 +375,16 @@ class SimulationScene:
 
                 self.kernel.handle_click(ev.pos)
 
+    def launch_3d_view(self):
+
+        p = Process(
+            target=open_gl_window,
+            args=(self.renderer3d,)
+        )
+
+        p.daemon = True
+        p.start()
+
     def _paint_cell(self, pos):
 
         mx, my = pos
@@ -391,7 +434,10 @@ class SimulationScene:
             )
 
         elif b is self.btn_evol_paso:
-
+            self.btn_pause.active = True
+            self.btn_evolucion.active = False
+            self.btn_pause.label = "Resume"
+            self.life.running = False
             self.life.step()
 
         elif b is self.btn_limpiar_reg:
@@ -403,22 +449,24 @@ class SimulationScene:
             self.kernel.clear()
 
         elif b is self.btn_evolucion:
-
             self.life.running = b.active
+            if b.active:
+                self.btn_evolucion.label = "Stop"
+            else:
+                self.btn_evolucion.label = "Start"
+                self.life.reset()
 
-        elif b is self.btn_regla110:
-
-            self.life.rule110_fill(d)
+        elif b is self.btn_pause:
+            self.life.running = not b.active
+            if b.active:
+                self.btn_pause.label = "Resume"
+            else:
+                self.btn_pause.label = "Pause"
 
         elif b is self.btn_limpiar_vis:
-
-            if self.life.running:
-
-                self.life.running = False
-
-                self.btn_evolucion.active = False
-
-            self.life.reset()
+            self.btn_evolucion.active = False
+            self.btn_evolucion.label = "Start"
+            self.life.full_reset()
 
         elif b is self.btn_agregar_kernel:
 
@@ -427,6 +475,17 @@ class SimulationScene:
             )
 
             self.life.rule = rule
+
+        elif b is self.btn_view_3d:
+            if self.life.history:
+                display3d = Display3D(self.life.history)
+                p = Process(
+                    target=open_gl_window,
+                    args=(display3d,)
+                )
+
+                p.daemon = True
+                p.start()
 
         elif b is self.btn_ocultar_panel:
 
@@ -445,6 +504,7 @@ class SimulationScene:
                 self.btn_ocultar_panel.label = ">>"
 
                 self.btn_ocultar_panel.rect.x = config.PAD
+        
 
     def draw(self):
         self.theme["bg"] = self.bg_color_selectors[0].get_color()
@@ -494,10 +554,14 @@ class SimulationScene:
 
         surf.fill(config.P_BG)
 
+        # =====================================================
+        # RULE MATRIX
+        # =====================================================
+
         config.draw_text(
             surf,
             self.fb,
-            "Regla de evolucion (512 bits)",
+            "Evolution Rule (512 bits)",
             (config.PAD, self.y_rule_hdr),
             config.P_FG
         )
@@ -513,24 +577,114 @@ class SimulationScene:
             self.fxs
         )
 
-        for b in self._action_btns:
-            b.draw(surf, self.fm)
+        # Info del kernel a su derecha 
+        xi = self.x_kern_info 
+        yi = self.y_kern_info 
+        lineas = [ 
+            "Clic en cada celda del", 
+            "kernel para activarla.", 
+            "La regla se recalcula:", 
+            "rule[i]=1 si todos los", 
+            "bits del kernel activos", 
+            "estan en el indice i.", 
+            ] 
+        for ln in lineas: 
+            config.draw_text(surf, self.fn, ln, (xi, yi), config.P_LABEL) 
+            yi += 11 
+            yi += 4 
+        config.draw_text(surf, self.fn, "Mascara:", (xi, yi), config.P_LABEL) 
+        config.draw_text(surf, self.fb, f"{self.kernel.mask:09b} ({self.kernel.mask})", (xi + 65, yi), config.P_VALUE)
+
+        # =====================================================
+        # RULES SECTION
+        # =====================================================
+
+        self.btn_agregar_kernel.draw(surf, self.fm)
+        self.btn_regla_aleat.draw(surf, self.fm)
+        self.btn_limpiar_reg.draw(surf, self.fm)
+
+        # =====================================================
+        # POPULATION SECTION
+        # =====================================================
+
+        config.draw_text(
+            surf,
+            self.fb,
+            "Population",
+            (config.PAD, self.y_population_hdr),
+            config.P_FG
+        )
+
+        pygame.draw.line(
+            surf,
+            config.P_BORDER,
+            (config.PAD, self.y_population_hdr + 16),
+            (config.PANEL_W - config.PAD, self.y_population_hdr + 16)
+        )
+
+        self.btn_conf_aleat.draw(surf, self.fm)
+        self.btn_limpiar_vis.draw(surf, self.fm)
+
+        config.draw_text(
+            surf,
+            self.fxs,
+            "Density",
+            (config.PAD, self.y_den_lbl),
+            config.P_LABEL
+        )
 
         self.slider_den.draw(surf, self.fxs)
 
+        # =====================================================
+        # EVOLUTION SECTION
+        # =====================================================
+
+        config.draw_text(
+            surf,
+            self.fb,
+            "Evolution",
+            (config.PAD, self.y_evolution_hdr),
+            config.P_FG
+        )
+
+        pygame.draw.line(
+            surf,
+            config.P_BORDER,
+            (config.PAD, self.y_evolution_hdr + 16),
+            (config.PANEL_W - config.PAD, self.y_evolution_hdr + 16)
+        )
+
+        self.btn_evolucion.draw(surf, self.fm)
+        self.btn_evol_paso.draw(surf, self.fm)
+
+        self.btn_pause.draw(surf, self.fm)
+
+        self.btn_save.draw(surf, self.fm)
+        self.btn_view_3d.draw(surf, self.fm)
+
+        # =====================================================
+        # COLORS
+        # =====================================================
+
         for idx, lc in enumerate(["Background", "Grid", "Cell"]):
+
             config.draw_text(
                 surf,
                 self.fm,
                 lc,
-                (config.PAD + idx * ((config.PANEL_W - config.PAD) // 3), self.y_tema_lbl),
+                (
+                    config.PAD + idx * ((config.PANEL_W - config.PAD) // 3),
+                    self.y_tema_lbl
+                ),
                 config.P_LABEL
             )
 
-        
-
         for idx, b in enumerate(self.bg_color_selectors):
             b.draw(surf, self.fxs)
+
+        # =====================================================
+        # BORDER
+        # =====================================================
 
         pygame.draw.rect(
             surf,

@@ -18,6 +18,7 @@ class Life2DM:
         self.rule    = np.zeros(512,              dtype=np.uint8)
         self.gen     = 0
         self.running = False
+        self.history = []
      
     def sync_rule_from_matrix(self, matrix_data):
         """matrix_data: lista[16][32]  -> self.rule[512]"""
@@ -26,7 +27,6 @@ class Life2DM:
                 idx = i * 32 + j
                 if idx < 512:
                     self.rule[idx] = matrix_data[i][j]
-        print(self.rule)
 
      
     def step(self):
@@ -55,6 +55,7 @@ class Life2DM:
 
         self.state = self.rule[idx].astype(np.uint8)
         self.gen  += 1
+        self.history.append(np.rot90(self.state.copy(), -1))
 
     def tick(self):
         if self.running:
@@ -62,29 +63,17 @@ class Life2DM:
 
      
     def reset(self):
-        self.state[:] = 0
         self.gen   = 0
+        self.history = []
+        self.running = False
+
+    def full_reset(self):
+        self.state[:] = 0
+        self.reset()
 
     def random_fill(self, density):
         rng = np.random.default_rng(int(time.time() * 1000) & 0xFFFFFFFF)
         self.state = (rng.random((self.height, self.width)) < density).astype(np.uint8)
-        self.gen   = 0
-
-    def rule110_fill(self, density):
-        nb  = config.rule_binary(110)
-        rng = np.random.default_rng(int(time.time() * 1000) & 0xFFFFFFFF)
-        row = (rng.random(self.width) < density).astype(np.uint8)
-        self.state[:] = 0
-        self.state[0] = row
-        for i in range(1, self.height):
-            new_row = np.zeros(self.width, dtype=np.uint8)
-            for j in range(self.width):
-                l = int(row[(j - 1) % self.width])
-                cv = int(row[j])
-                r  = int(row[(j + 1) % self.width])
-                new_row[j] = nb[l * 4 + cv * 2 + r]
-            self.state[i] = new_row
-            row = new_row
         self.gen   = 0
 
     def toggle_cell(self, cx, cy):

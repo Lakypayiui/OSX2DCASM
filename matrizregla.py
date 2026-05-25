@@ -25,10 +25,12 @@ class MatrizRegla:
                 self.data[i][j] = 0
 
     def randomize(self, p=0.4):
+
         rng = random.Random(int(time.time()))
-        i = int(rng.random()*16)
-        j = int(rng.random()*32)
-        self.data[i][j] = 1
+
+        for i in range(16):
+            for j in range(32):
+                self.data[i][j] = 1 if rng.random() < p else 0
 
     def set_from_rule_array(self, rule_np):
         """Carga desde un ndarray[512]."""

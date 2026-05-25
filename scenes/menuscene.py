@@ -67,8 +67,8 @@ class MenuScene:
 
         # Resultado
         self.start_requested = False
-        self.grid_width = 128
-        self.grid_height = 128
+        self.grid_width = 100
+        self.grid_height = 100
 
     def run(self):
 
