@@ -11,8 +11,10 @@ class Life2DM:
     state   : ndarray uint8 [GRID_H, GRID_W]
     rule    : ndarray uint8 [512]  — rule[idx] = 0 o 1
     """
-    def __init__(self):
-        self.state   = np.zeros((config.GRID_H, config.GRID_W), dtype=np.uint8)
+    def __init__(self, width, height):
+        self.width   = width
+        self.height  = height
+        self.state   = np.zeros((self.height, self.width), dtype=np.uint8)
         self.rule    = np.zeros(512,              dtype=np.uint8)
         self.gen     = 0
         self.running = False
@@ -65,28 +67,28 @@ class Life2DM:
 
     def random_fill(self, density):
         rng = np.random.default_rng(int(time.time() * 1000) & 0xFFFFFFFF)
-        self.state = (rng.random((config.GRID_H, config.GRID_W)) < density).astype(np.uint8)
+        self.state = (rng.random((self.height, self.width)) < density).astype(np.uint8)
         self.gen   = 0
 
     def rule110_fill(self, density):
         nb  = config.rule_binary(110)
         rng = np.random.default_rng(int(time.time() * 1000) & 0xFFFFFFFF)
-        row = (rng.random(config.GRID_W) < density).astype(np.uint8)
+        row = (rng.random(self.width) < density).astype(np.uint8)
         self.state[:] = 0
         self.state[0] = row
-        for i in range(1, config.GRID_H):
-            new_row = np.zeros(config.GRID_W, dtype=np.uint8)
-            for j in range(config.GRID_W):
-                l = int(row[(j - 1) % config.GRID_W])
+        for i in range(1, self.height):
+            new_row = np.zeros(self.width, dtype=np.uint8)
+            for j in range(self.width):
+                l = int(row[(j - 1) % self.width])
                 cv = int(row[j])
-                r  = int(row[(j + 1) % config.GRID_W])
+                r  = int(row[(j + 1) % self.width])
                 new_row[j] = nb[l * 4 + cv * 2 + r]
             self.state[i] = new_row
             row = new_row
         self.gen   = 0
 
     def toggle_cell(self, cx, cy):
-        if 0 <= cx < config.GRID_W and 0 <= cy < config.GRID_H:
+        if 0 <= cx < self.width and 0 <= cy < self.height:
             self.state[cy, cx] ^= 1
 
     def count_alive(self):
@@ -98,8 +100,8 @@ class Life2DM:
         rgb = np.full((h_limit, w_limit, 3), theme["bg"], dtype=np.uint8)
 
         # 1. Tamaño TOTAL del mundo en píxeles (puede ser mucho mayor que la pantalla)
-        total_w_px = config.GRID_W * config.CELL_PX
-        total_h_px = config.GRID_H * config.CELL_PX
+        total_w_px = self.width * config.CELL_PX
+        total_h_px = self.height * config.CELL_PX
 
         # 2. OFFSETS GLOBALES
         # Si total_w_px < w_limit -> off_x es POSITIVO (centra el mundo pequeño)
@@ -116,8 +118,8 @@ class Life2DM:
         # Calculamos qué índices de celda están cruzando los bordes de la pantalla
         x0 = max(0, -start_px_x // config.CELL_PX)
         y0 = max(0, -start_px_y // config.CELL_PX)
-        x1 = min(config.GRID_W, (w_limit - start_px_x) // config.CELL_PX + 1)
-        y1 = min(config.GRID_H, (h_limit - start_px_y) // config.CELL_PX + 1)
+        x1 = min(self.width, (w_limit - start_px_x) // config.CELL_PX + 1)
+        y1 = min(self.height, (h_limit - start_px_y) // config.CELL_PX + 1)
 
         view_state = self.state[y0:y1, x0:x1]
 
