@@ -1,4 +1,7 @@
 from config import *
+import random
+import time
+import numpy as np
 
 #  MATRIZ DE REGLA  16 x 32
  
@@ -9,10 +12,12 @@ class MatrizRegla:
     BM = int(BW * 0.1)             # margen entre botones
 
     def __init__(self):
+        self.active = True
         self.data = [[0] * 32 for _ in range(16)] 
 
     def toggle(self, row, col):
-        self.data[row][col] ^= 1
+        if self.active:
+            self.data[row][col] ^= 1
 
     def clear(self):
         for i in range(16):

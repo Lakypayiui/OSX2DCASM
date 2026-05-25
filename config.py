@@ -21,21 +21,21 @@ info = pygame.display.Info()
 SCREEN_W = info.current_w
 SCREEN_H = info.current_h
 
+WIN_W   = int(SCREEN_W * 0.9)
+WIN_H   = int(SCREEN_H * 0.9)
+
 #  CONSTANTES DEL AUTOMATA
  
-GRID_W  = 255    # columnas del espacio (RING  / FACTOR)
-GRID_H  = 255      # filas    del espacio (LINES / FACTOR)
-CELL_PX = 10      # pixeles por celda
+GRID_W  = 100 # columnas del espacio (RING  / FACTOR)
+GRID_H  = 100   # filas    del espacio (LINES / FACTOR)
+CELL_PX = max(4, WIN_W // GRID_W)      # pixeles por celda
 
  
 #  LAYOUT DE LA VENTANA
-
-PANEL_W = int(SCREEN_W * 0.4)
+PANEL_W = int(WIN_W * 0.4)
 SPACE_W = GRID_W * CELL_PX
 SPACE_H = GRID_H * CELL_PX
-WIN_W   = min(SPACE_W, int(SCREEN_W * 0.9))
-WIN_H   = min(SPACE_H + 20, int(SCREEN_H * 0.9))
-PAD     = 8
+PAD = 8
 
 # Paleta del panel
 P_BG     = ( 28,  28,  32)

@@ -135,6 +135,8 @@ class ACOSXM:
         # Scroll y cursor
         self.scroll_x = 0; self.scroll_y = 0
         self.cur_cx   = 0; self.cur_cy   = 0
+        self.dragging_rigth = False
+        self.last_mouse_pos = (0, 0)
 
      
     @property
@@ -157,51 +159,100 @@ class ACOSXM:
             if ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE:
                 pygame.quit(); sys.exit()
 
-            # Scroll
+            # Zoom con rueda del mouse
             if ev.type == pygame.MOUSEWHEEL:
                 mx, _ = pygame.mouse.get_pos()
-                if mx >= config.PANEL_W:
-                    self.scroll_y = self.scroll_y - ev.y
-                    self.scroll_x = self.scroll_x + ev.x
-            
-            # Zoom
-            if ev.type == pygame.KEYDOWN:
-                # Tecla +
-                if ev.key == pygame.K_PLUS or ev.key == pygame.K_KP_PLUS:
-                    config.CELL_PX *= 2
-                    config.CELL_PX =int(config.CELL_PX)
 
-                # Tecla -
-                elif ev.key == pygame.K_MINUS or ev.key == pygame.K_KP_MINUS:
-                    config.CELL_PX *= 0.5
+                if (mx >= config.PANEL_W and self.show_panel) or not self.show_panel:
+
+                    # Zoom in
+                    if ev.y > 0:
+                        config.CELL_PX *= 1.5
+
+                    # Zoom out
+                    elif ev.y < 0:
+                        config.CELL_PX /= 1.5
+
+                    # Evitar tamaños demasiado pequeños
+                    config.CELL_PX = max(1, config.CELL_PX)
+
                     config.CELL_PX = int(config.CELL_PX)
 
-                config.SPACE_W = config.GRID_W * config.CELL_PX
-                config. SPACE_H = config.GRID_H * config.CELL_PX
-                self.life.surf = pygame.Surface((config.SPACE_W, config.SPACE_H))
-                self.life.dirty = True
 
-                # Limitar zoom
-                #CELL_PX = max(0.1, min(5.0, CELL_PX))
+            # Iniciar drag con click izquierdo
+            if ev.type == pygame.MOUSEBUTTONDOWN:
+                if ev.button == 3:  # Click izquierdo
+                    self.dragging_rigth = True
+                    self.last_mouse_pos = pygame.mouse.get_pos()
+
+            # Terminar drag
+            if ev.type == pygame.MOUSEBUTTONUP:
+                if ev.button == 3:
+                    self.dragging_rigth = False
+
+            # Mover pantalla arrastrando
+            if ev.type == pygame.MOUSEMOTION and self.dragging_rigth:
+                mx, my = pygame.mouse.get_pos()
+
+                dx = mx - self.last_mouse_pos[0]
+                dy = my - self.last_mouse_pos[1]
+
+                self.scroll_x -= dx
+                self.scroll_y -= dy
+
+                self.last_mouse_pos = (mx, my)
+
 
             # Clic en espacio de evoluciones
             if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
                 mx, my = ev.pos
-                if (self.show_panel and mx > config.PANEL_W) or not self.show_panel:
-                    cx = mx // config.CELL_PX + self.scroll_x
-                    cy = my              // config.CELL_PX + self.scroll_y
-                    self.life.toggle_cell(cx, cy)
-                    self.cur_cx, self.cur_cy = cx, cy
+
+                w_limit, h_limit = self.screen.get_size()
+                total_w_px = config.GRID_W * config.CELL_PX
+                total_h_px = config.GRID_H * config.CELL_PX
+
+                global_off_x = (w_limit - total_w_px) // 2
+                global_off_y = (h_limit - total_h_px) // 2
+
+                start_px_x = global_off_x - (self.scroll_x * config.CELL_PX)
+                start_px_y = global_off_y - (self.scroll_y * config.CELL_PX)
+                if self.show_panel:
+                    if not mx < config.PANEL_W and not (my < config.PAD + self.btn_ocultar_panel.rect.height):
+                        cx = (mx - start_px_x) // config.CELL_PX
+                        cy = (my - start_px_y) // config.CELL_PX
+                        if 0 <= cx < config.GRID_W and 0 <= cy < config.GRID_H:
+                            self.life.toggle_cell(cx, cy)
+                            self.cur_cx, self.cur_cy = cx, cy
+                else:
+                    if (self.show_panel and mx > config.PANEL_W):
+                        cx = (mx - start_px_x) // config.CELL_PX
+                        cy = (my - start_px_y) // config.CELL_PX
+                        if 0 <= cx < config.GRID_W and 0 <= cy < config.GRID_H:
+                            self.life.toggle_cell(cx, cy)
+                            self.cur_cx, self.cur_cy = cx, cy
 
             # Arrastrar en espacio
             if ev.type == pygame.MOUSEMOTION and ev.buttons[0]:
                 mx, my = ev.pos
+                
+                w_limit, h_limit = self.screen.get_size()
+                total_w_px = config.GRID_W * config.CELL_PX
+                total_h_px = config.GRID_H * config.CELL_PX
+
+                global_off_x = (w_limit - total_w_px) // 2
+                global_off_y = (h_limit - total_h_px) // 2
+
+                start_px_x = global_off_x - (self.scroll_x * config.CELL_PX)
+                start_px_y = global_off_y - (self.scroll_y * config.CELL_PX)
+
                 if (self.show_panel and mx > config.PANEL_W) or not self.show_panel:
-                    cx = mx // config.CELL_PX + self.scroll_x
-                    cy = my              // config.CELL_PX + self.scroll_y
+                    cx = (mx - start_px_x) // config.CELL_PX
+                    cy = (my - start_px_y) // config.CELL_PX
+                                        
                     if (cx, cy) != (self.cur_cx, self.cur_cy):
-                        self.life.toggle_cell(cx, cy)
-                        self.cur_cx, self.cur_cy = cx, cy
+                        if 0 <= cx < config.GRID_W and 0 <= cy < config.GRID_H:
+                            self.life.toggle_cell(cx, cy)
+                            self.cur_cx, self.cur_cy = cx, cy
 
             # Slider
             self.slider_den.handle_event(ev)
@@ -263,14 +314,15 @@ class ACOSXM:
             self.show_panel = not self.show_panel
             if self.show_panel:
                 self.btn_ocultar_panel.label = "<<"
+                self.btn_ocultar_panel.rect.x = config.PANEL_W - config.PAD - 40
             else:
                 self.btn_ocultar_panel.label = ">>"
+                self.btn_ocultar_panel.rect.x = config.PAD
 
         else:
             for idx, tb in enumerate(self.tema_btns):
                 if b is tb:
                     self.theme_idx = idx
-                    self.life.dirty = True
                     break
 
      
@@ -278,21 +330,18 @@ class ACOSXM:
         self.screen.fill((10, 10, 12))
 
         # Espacio de evoluciones
-        self.life.draw(self.theme)
-        vr = pygame.Rect(
-            self.scroll_x * config.CELL_PX, self.scroll_y * config.CELL_PX,
-            config.SPACE_W,
-            min(config.WIN_H, config.SPACE_H))
-        self.screen.blit(self.life.surf, (0, 0), area=vr)
+        self.life.draw(self.screen,self.theme, self.scroll_x, self.scroll_y)
 
         # Panel
         if self.show_panel:
+            self._state_panel(True)
             self._draw_panel()
             self.btn_ocultar_panel.draw(self.panel_surf, self.fm)
             self.screen.blit(self.panel_surf, (0, 0))
             pygame.draw.line(self.screen, config.P_BORDER,
                             (config.PANEL_W, 0), (config.PANEL_W, config.WIN_H), 2)
         else:
+            self._state_panel(False)
             self.btn_ocultar_panel.draw(self.screen, self.fm)
 
         # Titulo del espacio
@@ -303,7 +352,13 @@ class ACOSXM:
 
         pygame.display.flip()
 
-     
+    def _state_panel(self, active):
+        self.matriz_regla.active = active
+        self.kernel.active = active
+        for b in self._action_btns:
+            if b is not self.btn_evolucion:
+                b.active = not active
+
     def _draw_panel(self):
         surf = self.panel_surf
         surf.fill(config.P_BG)
@@ -311,8 +366,6 @@ class ACOSXM:
         # ── Encabezado matriz    ───────────────────
         config.draw_text(surf, self.fb, "Regla de evolucion  (16 x 32 = 512 bits)",
                   (config.PAD, self.y_rule_hdr), config.P_FG)
-        
-        
 
         # Numeracion de columnas (cada 8)
         for j in range(0, 32, 8):

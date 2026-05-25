@@ -20,6 +20,7 @@ class Kernel3x3:
               "SW", "S ", "SE"]
 
     def __init__(self, x, y):
+        self.active = True
         self.x     = x
         self.y     = y
         self.bits  = [0] * 9
@@ -45,10 +46,11 @@ class Kernel3x3:
 
     def handle_click(self, pos):
         """Toggle del bit clickeado; devuelve su indice o None."""
-        for i, r in enumerate(self.rects):
-            if r.collidepoint(pos):
-                self.bits[i] ^= 1
-                return i
+        if self.active:
+            for i, r in enumerate(self.rects):
+                if r.collidepoint(pos):
+                    self.bits[i] ^= 1
+                    return i
         return None
 
     def set_kernel_mask(self, num):
