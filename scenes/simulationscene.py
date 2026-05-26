@@ -125,7 +125,36 @@ class SimulationScene:
             y
         )
 
-        y += config.PAD + 80
+        y += BH + BGAP + 4
+
+        # Density slider
+        self.y_den_rules_lbl = y
+        self.x_den_rules_lbl = config.PAD + 2 * (BW + BGAP)
+
+        y += 13
+
+        self.slider_den_rules = Slider(
+            (self.x_den_rules_lbl , y,  int(BW*1.4), 12),
+            value=0.5
+        )
+
+        y += 24
+
+        self.btn_presets = btn_panel(
+            "Load preset",
+            2,
+            y
+        )
+
+        y += BH + BGAP
+
+        self.btn_save_preset = btn_panel(
+            "Save preset",
+            2,
+            y
+        )
+
+        y += config.PAD + 40
 
         self.y_sep2 = y
 
@@ -236,6 +265,8 @@ class SimulationScene:
         self._action_btns = [
             self.btn_conf_aleat,
             self.btn_regla_aleat,
+            self.btn_presets,
+            self.btn_save_preset,
             self.btn_evol_paso,
             self.btn_pause,
             self.btn_save,
@@ -342,6 +373,7 @@ class SimulationScene:
 
             # Slider
             self.slider_den.handle_event(ev)
+            self.slider_den_rules.handle_event(ev)
 
             # Botones
             for b in self._all_btns:
@@ -420,6 +452,7 @@ class SimulationScene:
     def _on_btn(self, b):
 
         d = self.slider_den.value
+        dr = self.slider_den_rules.value
 
         if b is self.btn_conf_aleat:
 
@@ -427,7 +460,7 @@ class SimulationScene:
 
         elif b is self.btn_regla_aleat:
 
-            self.matriz_regla.randomize()
+            self.matriz_regla.randomize(dr)
 
             self.life.sync_rule_from_matrix(
                 self.matriz_regla.data
@@ -603,6 +636,19 @@ class SimulationScene:
         self.btn_regla_aleat.draw(surf, self.fm)
         self.btn_limpiar_reg.draw(surf, self.fm)
 
+        config.draw_text(
+            surf,
+            self.fxs,
+            "Density Rules",
+            (self.x_den_rules_lbl, self.y_den_rules_lbl),
+            config.P_LABEL
+        )
+
+        self.slider_den_rules.draw(surf, self.fxs)
+
+        self.btn_presets.draw(surf, self.fm)
+        self.btn_save_preset.draw(surf, self.fm)
+
         # =====================================================
         # POPULATION SECTION
         # =====================================================
@@ -628,7 +674,7 @@ class SimulationScene:
         config.draw_text(
             surf,
             self.fxs,
-            "Density",
+            "Density Population",
             (config.PAD, self.y_den_lbl),
             config.P_LABEL
         )
