@@ -1,9 +1,12 @@
 import json
+import numpy as np
 import pygame
 import config
 
 from widgets.popup import Popup
 from widgets.button import Button
+
+PRESET_PATH = "presets/rules.json"
 
 class PresetPopup(Popup):
 
@@ -23,7 +26,7 @@ class PresetPopup(Popup):
 
         try:
 
-            with open("presets.json", "r") as f:
+            with open(PRESET_PATH, "r", encoding="utf-8") as f:
                 self.presets = json.load(f)
 
         except Exception:
@@ -48,6 +51,39 @@ class PresetPopup(Popup):
             self.buttons.append((btn, preset))
 
             y += 36
+
+    def load_preset(self, name, matriz_regla, life):
+
+        with open(PRESET_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        preset = data[name]
+
+        # Restaurar regla numpy
+        life.rule = np.array(
+            preset["rule"],
+            dtype=np.uint8
+        )
+
+        # Reconstruir matriz 16x32
+        for idx, value in enumerate(life.rule):
+
+            row = idx // 32
+            col = idx % 32
+
+            matriz_regla.data[row][col] = int(value)
+
+    def save_preset(self, name, life):
+
+        with open(PRESET_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        data[name] = {
+            "rule": life.rule.tolist()
+        }
+
+        with open(PRESET_PATH, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4)
 
     def handle_event(self, ev):
 

@@ -12,6 +12,7 @@ from display3d import Display3D
 from widgets.button import Button
 from widgets.slider import Slider
 from widgets.rgbselector import RGBSelector
+from widgets.presetpopup import PresetPopup
 
 def open_gl_window(renderer):
         renderer.open_gl_render()
@@ -284,6 +285,16 @@ class SimulationScene:
             (config.PANEL_W, config.WIN_H)
         )
 
+        # Popups
+        self.preset_popup = PresetPopup(
+            (
+                250,
+                120,
+                500,
+                400
+            )
+        )
+
         # Camara
         self.scroll_x = 0
         self.scroll_y = 0
@@ -385,6 +396,17 @@ class SimulationScene:
             # Selectores de color
             for s in self.bg_color_selectors:
                 s.handle_event(ev)
+
+            # Popup Presets
+            preset = self.preset_popup.handle_event(ev)
+
+            if preset is not None:
+
+                self.matriz_regla.set_from_rule_array(preset["rule"])
+
+                self.life.sync_rule_from_matrix(
+                    self.matriz_regla.data
+                )
 
             # Matriz regla
             if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
@@ -509,6 +531,14 @@ class SimulationScene:
 
             self.life.rule = rule
 
+        elif b is self.btn_presets:
+
+            self.preset_popup.open()
+
+        elif b is self.btn_save_preset:
+
+            print("Save preset")
+
         elif b is self.btn_view_3d:
             if self.life.history:
                 display3d = Display3D(self.life.history)
@@ -578,6 +608,8 @@ class SimulationScene:
                 self.screen,
                 self.fm
             )
+
+        self.preset_popup.draw(self.screen)
 
         pygame.display.flip()
 
@@ -727,6 +759,7 @@ class SimulationScene:
 
         for idx, b in enumerate(self.bg_color_selectors):
             b.draw(surf, self.fxs)
+
 
         # =====================================================
         # BORDER
