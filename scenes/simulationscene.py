@@ -7,7 +7,7 @@ import config
 from life2dm import Life2DM
 from matrizregla import MatrizRegla
 from kernel import Kernel3x3
-from display3d import Display3D
+from display3d import Display3D, PLATFORM
 
 from widgets.button import Button
 from widgets.slider import Slider
@@ -15,6 +15,9 @@ from widgets.rgbselector import RGBSelector
 from widgets.presetpopup import PresetPopup
 
 def open_gl_window(renderer):
+    if PLATFORM == "Darwin":
+        renderer.macos_3d_render()
+    else:
         renderer.open_gl_render()
 
 
