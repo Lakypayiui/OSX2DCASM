@@ -3,6 +3,7 @@
 import platform
 import os
 import sys
+import threading
 import numpy as np
 import config
 from widgets.button import Button
@@ -47,14 +48,6 @@ class Display3D:
         print(f"[Sim] Generaciones: {self.generations}, Células vivas: {self.N}")
 
         self.use_wgpu = False
-        try:
-            import wgpu
-            import wgpu.backends.auto   # elige Metal en macOS, Vulkan en Linux/Win
-            self.use_wgpu = True
-            print(f"[GPU] wgpu disponible → {'Metal nativo' if IS_MACOS else 'Vulkan/DX12'}")
-        except ImportError:
-            print("[GPU] wgpu no instalado → pip install wgpu")
-            print("[GPU] Usando OpenGL fallback")
     
     def perspective(self, fov_deg, aspect, near, far):
         f = 1.0 / np.tan(np.radians(fov_deg) / 2)
@@ -718,4 +711,3 @@ class Display3D:
                 clock.tick(60)
 
             pygame.quit()
-

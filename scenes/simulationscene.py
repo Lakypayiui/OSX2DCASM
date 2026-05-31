@@ -1,6 +1,6 @@
 import sys
 import pygame
-from multiprocessing import Process
+from multiprocessing import Process, set_start_method
 
 import config
 
@@ -17,8 +17,11 @@ from widgets.presetpopup import PresetPopup
 def open_gl_window(renderer):
     if PLATFORM == "Darwin":
         renderer.macos_3d_render()
+    elif PLATFORM == "Windows":
+        renderer.open_gl_render()
     else:
         renderer.open_gl_render()
+        #renderer.moderngl_render()
 
 
 class SimulationScene:
@@ -46,6 +49,7 @@ class SimulationScene:
         self.matriz_regla = MatrizRegla()
         self.life = Life2DM(width, height)
         self.history = []
+        self.display3d = None
 
         # Panel
         BW, BH, BGAP = 183, 22, 4
@@ -433,10 +437,14 @@ class SimulationScene:
                 self.kernel.handle_click(ev.pos)
 
     def launch_3d_view(self):
-
+        set_start_method(
+            "spawn",
+            force=True
+        )
+        
         p = Process(
             target=open_gl_window,
-            args=(self.renderer3d,)
+            args=(self.display3d,)
         )
 
         p.daemon = True
@@ -544,14 +552,8 @@ class SimulationScene:
 
         elif b is self.btn_view_3d:
             if self.life.history:
-                display3d = Display3D(self.life.history)
-                p = Process(
-                    target=open_gl_window,
-                    args=(display3d,)
-                )
-
-                p.daemon = True
-                p.start()
+                self.display3d = Display3D(self.life.history)
+                self.launch_3d_view()
 
         elif b is self.btn_ocultar_panel:
 
