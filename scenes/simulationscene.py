@@ -14,6 +14,7 @@ from widgets.slider import Slider
 from widgets.rgbselector import RGBSelector
 from widgets.presetpopup import PresetPopup
 from widgets.saverulepopup import SaveRulePopup
+from widgets.confirmoverwritepopup import ConfirmOverwritePopup
 
 def open_gl_window(renderer):
     if PLATFORM == "Darwin":
@@ -297,6 +298,8 @@ class SimulationScene:
         # Popups
         self.preset_w, self.preset_h = 500, 400
         self.show_popup = False
+        self.show_confirm = False
+
         self.preset_popup = PresetPopup(
             (
                 (self.screen.get_width() - self.preset_w) // 2,
@@ -313,6 +316,15 @@ class SimulationScene:
                 self.preset_h,
             ),
             self.matriz_regla.to_rule_array()
+        )
+
+        self.confirm_popup = ConfirmOverwritePopup(
+            (
+                (self.screen.get_width() - 500) // 2,
+                (self.screen.get_height() - 300) // 2,
+                500,
+                300
+            )
         )
 
         # Camara
@@ -429,19 +441,36 @@ class SimulationScene:
                 )
 
             # Popup Save Preset
-            save_result = self.save_preset_popup.handle_event(ev)
+            if not self.show_confirm:
+                save_result = self.save_preset_popup.handle_event(ev)
 
-            if save_result == "exists":
-                print("Rule name already exists. Choose another name.")
+                if save_result == "exists":
+                    self.confirm_popup.open(
+                        self.save_preset_popup.input_name.text
+                    )
 
-            elif save_result == "saved":
-                self.preset_popup.load_presets()
-                print("Rule saved")
+                elif save_result == "saved":
+                    self.preset_popup.load_presets()
+                    print("Rule saved")
+
+
+            confirm = self.confirm_popup.handle_event(ev)
+
+            if confirm is True:
+
+                self.save_preset_popup.save_rule(
+                    overwrite=True
+                )
 
             if self.save_preset_popup.visible or self.preset_popup.visible:
                 self.show_popup = True
             else:
                 self.show_popup = False
+
+            if self.confirm_popup.visible:
+                self.show_confirm = True
+            else:
+                self.show_confirm = False
 
             # Matriz regla
             if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
@@ -654,6 +683,7 @@ class SimulationScene:
 
         self.preset_popup.draw(self.screen)
         self.save_preset_popup.draw(self.screen)
+        self.confirm_popup.draw(self.screen)
 
         pygame.display.flip()
 
