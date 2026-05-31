@@ -240,7 +240,7 @@ class Display3D:
         if not glfw.init():
             raise RuntimeError("glfw.init() falló")
         glfw.window_hint(glfw.CLIENT_API, glfw.NO_API)   # sin OpenGL
-        window = glfw.create_window(width, height,
+        window = glfw.create_window(self.width, self.height,
             f"Game of Life 3D [Metal {'Apple Silicon' if IS_SILICON else 'macOS'}]",
             None, None)
         if not window:
@@ -354,7 +354,7 @@ class Display3D:
 
         vbuf_faces   = make_buf(face_data)
         vbuf_edges   = make_buf(edge_data)
-        offsets_buf  = make_buf(all_points)
+        offsets_buf  = make_buf(self.all_points)
         # uniform_buf se crea cada frame con newBufferWithBytes_length_options_
 
         n_fv = len(face_data)
@@ -389,7 +389,9 @@ class Display3D:
                 S["rx"] = S["ry"] = 0.0; S["dist"] = self.base_dist
 
             # MVP → uniform buffer
-            mvp = self.compute_mvp(S["rx"], S["ry"], S["dist"])
+            # MVP → uniform buffer
+            mvp = self.compute_mvp(S["rx"], S["ry"], S["dist"], 
+                                cam_x=0.0, cam_y=0.0, cam_z=0.0)
             mvp_bytes = mvp.T.astype(np.float32).tobytes()
             # Crear buffer de uniforms con los bytes directamente (más simple y confiable)
             uniform_buf = device.newBufferWithBytes_length_options_(
