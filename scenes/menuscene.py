@@ -25,12 +25,14 @@ class MenuScene:
 
         self.input_width = InputBox(
             (center_x - 110, 270, 220, 42),
-            "100"
+            "100",
+            numeric_only=True
         )
 
         self.input_height = InputBox(
             (center_x - 110, 340, 220, 42),
-            "100"
+            "100",
+            numeric_only=True
         )
 
         # Botones

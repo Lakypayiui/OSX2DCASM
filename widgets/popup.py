@@ -1,5 +1,6 @@
 import pygame
 import config
+from widgets.button import Button
 
 class Popup:
 
@@ -22,6 +23,16 @@ class Popup:
         self.fn = pygame.font.SysFont("monospace", 14)
         self.fb = pygame.font.SysFont("monospace", 18, bold=True)
 
+        self.btn_close = Button(
+            (
+                self.rect.right - 38,
+                self.rect.y + 8,
+                30,
+                30
+            ),
+            "X"
+        )
+
     def open(self):
 
         self.visible = True
@@ -32,7 +43,14 @@ class Popup:
 
     def handle_event(self, ev):
 
-        pass
+        if not self.visible:
+            return False
+
+        if self.btn_close.handle_event(ev):
+            self.close()
+            return True
+
+        return False
 
     def draw(self, screen):
 
@@ -76,3 +94,5 @@ class Popup:
                 self.rect.y + 12
             )
         )
+
+        self.btn_close.draw(screen, self.fb)

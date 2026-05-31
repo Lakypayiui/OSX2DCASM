@@ -1,10 +1,11 @@
 import pygame
 
 class InputBox:
-    def __init__(self, rect, text=""):
+    def __init__(self, rect, text="", numeric_only=False):
         self.rect = pygame.Rect(rect)
         self.text = text
         self.active = False
+        self.numeric_only = numeric_only
 
         self.bg = (28, 28, 36)
         self.border = (70, 70, 90)
@@ -24,9 +25,12 @@ class InputBox:
                 pass
 
             else:
-                # Solo numeros
-                if ev.unicode.isdigit():
-                    self.text += ev.unicode
+                if self.numeric_only:
+                    if ev.unicode.isdigit():
+                        self.text += ev.unicode
+                else:
+                    if ev.unicode.isprintable():
+                        self.text += ev.unicode
 
     def draw(self, surf, font):
         pygame.draw.rect(surf, self.bg, self.rect, border_radius=6)

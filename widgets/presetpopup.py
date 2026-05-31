@@ -73,22 +73,12 @@ class PresetPopup(Popup):
 
             matriz_regla.data[row][col] = int(value)
 
-    def save_preset(self, name, life):
-
-        with open(PRESET_PATH, "r", encoding="utf-8") as f:
-            data = json.load(f)
-
-        data[name] = {
-            "rule": life.rule.tolist()
-        }
-
-        with open(PRESET_PATH, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4)
-
     def handle_event(self, ev):
 
         if not self.visible:
             return None
+
+        super().handle_event(ev)
 
         if ev.type == pygame.KEYDOWN:
 

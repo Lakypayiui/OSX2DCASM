@@ -13,6 +13,7 @@ from widgets.button import Button
 from widgets.slider import Slider
 from widgets.rgbselector import RGBSelector
 from widgets.presetpopup import PresetPopup
+from widgets.saverulepopup import SaveRulePopup
 
 def open_gl_window(renderer):
     if PLATFORM == "Darwin":
@@ -51,6 +52,7 @@ class SimulationScene:
         self.history = []
         self.display3d = None
 
+        
         # Panel
         BW, BH, BGAP = 183, 22, 4
 
@@ -293,13 +295,24 @@ class SimulationScene:
         )
 
         # Popups
+        self.preset_w, self.preset_h = 500, 400
+        self.show_popup = False
         self.preset_popup = PresetPopup(
             (
-                250,
-                120,
-                500,
-                400
+                (self.screen.get_width() - self.preset_w) // 2,
+                (self.screen.get_height() - self.preset_h) // 2,
+                self.preset_w,
+                self.preset_h
             )
+        )
+        self.save_preset_popup = SaveRulePopup(
+            (
+                (self.screen.get_width() - self.preset_w) // 2,
+                (self.screen.get_height() - self.preset_h) // 2,
+                self.preset_w,
+                self.preset_h,
+            ),
+            self.matriz_regla.to_rule_array()
         )
 
         # Camara
@@ -415,6 +428,21 @@ class SimulationScene:
                     self.matriz_regla.data
                 )
 
+            # Popup Save Preset
+            save_result = self.save_preset_popup.handle_event(ev)
+
+            if save_result == "exists":
+                print("Rule name already exists. Choose another name.")
+
+            elif save_result == "saved":
+                self.preset_popup.load_presets()
+                print("Rule saved")
+
+            if self.save_preset_popup.visible or self.preset_popup.visible:
+                self.show_popup = True
+            else:
+                self.show_popup = False
+
             # Matriz regla
             if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
 
@@ -441,7 +469,7 @@ class SimulationScene:
             "spawn",
             force=True
         )
-        
+
         p = Process(
             target=open_gl_window,
             args=(self.display3d,)
@@ -451,6 +479,9 @@ class SimulationScene:
         p.start()
 
     def _paint_cell(self, pos):
+
+        if self.show_popup:
+            return
 
         mx, my = pos
 
@@ -520,6 +551,8 @@ class SimulationScene:
                 self.btn_evolucion.label = "Stop"
             else:
                 self.btn_evolucion.label = "Start"
+                self.btn_pause.active = False
+                self.btn_pause.label = "Pause"
                 self.life.reset()
 
         elif b is self.btn_pause:
@@ -532,6 +565,9 @@ class SimulationScene:
         elif b is self.btn_limpiar_vis:
             self.btn_evolucion.active = False
             self.btn_evolucion.label = "Start"
+            self.btn_pause.active = False
+            self.btn_pause.label = "Pause"
+
             self.life.full_reset()
 
         elif b is self.btn_agregar_kernel:
@@ -543,12 +579,14 @@ class SimulationScene:
             self.life.rule = rule
 
         elif b is self.btn_presets:
-
+            self.show_popup = True
             self.preset_popup.open()
 
         elif b is self.btn_save_preset:
-
-            print("Save preset")
+            self.show_popup = True
+            self.save_preset_popup.rule = self.matriz_regla.to_rule_array()
+            self.save_preset_popup.open()
+            print("Save preset opened")
 
         elif b is self.btn_view_3d:
             if self.life.history:
@@ -615,6 +653,7 @@ class SimulationScene:
             )
 
         self.preset_popup.draw(self.screen)
+        self.save_preset_popup.draw(self.screen)
 
         pygame.display.flip()
 

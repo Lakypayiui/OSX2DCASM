@@ -8,8 +8,12 @@ class Button:
         self.label  = label
         self.toggle = toggle
         self.active = False
-        self.bg     = bg;  self.fg    = fg
-        self.bg_on  = bg_on; self.fg_on = fg_on
+        self.bg     = bg  
+        self.fg    = fg
+        self.bg_on  = bg_on 
+        self.fg_on = fg_on
+        self.click_sound = pygame.mixer.Sound("assets/sounds/click_button.wav")
+        self.click_sound.set_volume(0.5)
         self._hov   = False
 
     def handle_event(self, ev):
@@ -17,6 +21,8 @@ class Button:
             self._hov = self.rect.collidepoint(ev.pos)
         if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
             if self.rect.collidepoint(ev.pos):
+                if self.click_sound:
+                    self.click_sound.play()
                 if self.toggle:
                     self.active = not self.active
                 return True
