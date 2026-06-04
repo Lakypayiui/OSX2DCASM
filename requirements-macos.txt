@@ -1,0 +1,6 @@
+numpy>=2.0
+pygame>=2.6
+glfw
+pyobjc-core
+pyobjc-framework-Cocoa
+pyobjc-framework-Metal

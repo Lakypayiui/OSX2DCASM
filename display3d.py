@@ -46,8 +46,6 @@ class Display3D:
 
         print(f"[Platform] {PLATFORM} {'(Apple Silicon)' if IS_SILICON else ''}")
         print(f"[Sim] Generaciones: {self.generations}, Células vivas: {self.N}")
-
-        self.use_wgpu = False
     
     def perspective(self, fov_deg, aspect, near, far):
         f = 1.0 / np.tan(np.radians(fov_deg) / 2)
