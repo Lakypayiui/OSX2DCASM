@@ -10,6 +10,7 @@ from kernel import Kernel3x3
 from display3d import Display3D, PLATFORM
 
 from widgets.button import Button
+from widgets.savesimulationpopup import SaveSimulationPopup
 from widgets.slider import Slider
 from widgets.rgbselector import RGBSelector
 from widgets.presetpopup import PresetPopup
@@ -327,6 +328,15 @@ class SimulationScene:
             )
         )
 
+        self.save_state_popup = SaveSimulationPopup(
+            (
+                (self.screen.get_width() - 500) // 2,
+                (self.screen.get_height() - 300) // 2,
+                500,
+                300
+            )
+        )
+
         # Camara
         self.scroll_x = 0
         self.scroll_y = 0
@@ -364,19 +374,19 @@ class SimulationScene:
 
             # Zoom
             if ev.type == pygame.MOUSEWHEEL:
+                if not self.show_popup:
+                    mx, _ = pygame.mouse.get_pos()
 
-                mx, _ = pygame.mouse.get_pos()
+                    if (mx >= config.PANEL_W and self.show_panel) or not self.show_panel:
 
-                if (mx >= config.PANEL_W and self.show_panel) or not self.show_panel:
+                        if ev.y > 0:
+                            config.CELL_PX *= 1.6
 
-                    if ev.y > 0:
-                        config.CELL_PX *= 1.6
+                        elif ev.y < 0:
+                            config.CELL_PX /= 1.6
 
-                    elif ev.y < 0:
-                        config.CELL_PX /= 1.6
-
-                    config.CELL_PX = max(2, config.CELL_PX)
-                    config.CELL_PX = int(config.CELL_PX)
+                        config.CELL_PX = max(2, config.CELL_PX)
+                        config.CELL_PX = int(config.CELL_PX)
 
 
             # Inicio drag
