@@ -15,15 +15,22 @@ from widgets.rgbselector import RGBSelector
 from widgets.presetpopup import PresetPopup
 from widgets.saverulepopup import SaveRulePopup
 from widgets.confirmoverwritepopup import ConfirmOverwritePopup
+import os
 
-def open_gl_window(renderer):
+print("SimulationScene cargado PID =", os.getpid())
+
+def open_gl_window(history):
+
+    print("SimulationScene cargado PID =", os.getpid())
+
+    renderer = Display3D(history)
+
     if PLATFORM == "Darwin":
         renderer.macos_3d_render()
     elif PLATFORM == "Windows":
         renderer.open_gl_render()
     else:
         renderer.open_gl_render()
-        #renderer.moderngl_render()
 
 
 class SimulationScene:
@@ -494,17 +501,12 @@ class SimulationScene:
                 self.kernel.handle_click(ev.pos)
 
     def launch_3d_view(self):
-        set_start_method(
-            "spawn",
-            force=True
-        )
 
         p = Process(
             target=open_gl_window,
-            args=(self.display3d,)
+            args=(self.life.history,)
         )
 
-        p.daemon = True
         p.start()
 
     def _paint_cell(self, pos):

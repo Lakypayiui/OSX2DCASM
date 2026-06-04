@@ -71,12 +71,43 @@ class Display3D:
         a = np.radians(deg); c, s = float(np.cos(a)), float(np.sin(a))
         return np.array([[c,0,s,0],[0,1,0,0],[-s,0,c,0],[0,0,0,1]], dtype=np.float32)
 
-    def compute_mvp(self,rx, ry, dist, cam_x, cam_y, cam_z):
-        proj  = self.perspective(45, 1000/800, 0.1, 1000.0)
-        view = self.translate(-cam_x, -cam_y, -dist - cam_z) @ self.translate(-self.CX, -self.CY, -self.CZ)
-        model = self.translate(self.CX,self.CY,self.CZ) @ self.rot_y_mat(ry) @ self.rot_x_mat(rx) @ self.translate(-self.CX,-self.CY,-self.CZ)
+    def compute_mvp(self, cam_x, cam_y, cam_z, yaw, pitch):
+        """Cámara libre corregida y más estable"""
+        import numpy as np
+        
+        proj = self.perspective(45, self.width / self.height, 0.1, 2000.0)
+        
+        # Vectores de dirección
+        cy = np.cos(np.radians(yaw))
+        sy = np.sin(np.radians(yaw))
+        cp = np.cos(np.radians(pitch))
+        sp = np.sin(np.radians(pitch))
+        
+        forward = np.array([cy * cp, sp, sy * cp], dtype=np.float32)
+        right = np.cross(forward, np.array([0, 1, 0], dtype=np.float32))
+        right /= np.linalg.norm(right)
+        up = np.cross(right, forward)
+        
+        pos = np.array([cam_x, cam_y, cam_z], dtype=np.float32)
+        
+        # View Matrix (Construcción correcta por filas para Numpy)
+        view = np.eye(4, dtype=np.float32)
+        view[0, 0:3] = right
+        view[1, 0:3] = up
+        view[2, 0:3] = -forward
+        
+        view[0, 3] = -np.dot(right, pos)
+        view[1, 3] = -np.dot(up, pos)
+        # IMPORTANTE: Como la base Z es -forward, el producto punto es positivo
+        view[2, 3] = np.dot(forward, pos)
+        
+        # Modelo (Identidad)
+        # Las células ya están desplazadas en el mundo (in.offset).
+        # Trasladarlas de nuevo por (CX, CY, CZ) las sacaba del rango visual de la cámara.
+        model = np.eye(4, dtype=np.float32)
+        
         return proj @ view @ model
-    
+
     def extract_frustum_planes(self, m):
         planes = [
             m[3] + m[0],
@@ -198,246 +229,237 @@ class Display3D:
     def macos_3d_render(self):
         import glfw
         import ctypes
-        import Metal        # pyobjc-framework-Metal
-        import Cocoa        # pyobjc-framework-Cocoa
+        import Metal
         import objc
         from Foundation import NSAutoreleasePool
-
-        # Shader MSL (Metal Shading Language)
+        import numpy as np
+        # Distancia de renderizado
+        visible_generations = 100
         MSL_SHADER = """
-    #include <metal_stdlib>
-    using namespace metal;
+        #include <metal_stdlib>
+        using namespace metal;
+        struct Uniforms { float4x4 mvp; };
+        struct VertIn {
+            float3 vert [[attribute(0)]];
+            float edge [[attribute(1)]];
+            float3 offset [[attribute(2)]];
+        };
+        struct VertOut {
+            float4 pos [[position]];
+            float edge;
+        };
+        vertex VertOut vert_main(VertIn in [[stage_in]], constant Uniforms &u [[buffer(2)]]) {
+            VertOut out;
+            out.pos = u.mvp * float4(in.vert + in.offset, 1.0);
+            out.edge = in.edge;
+            return out;
+        }
+        fragment float4 frag_main(VertOut in [[stage_in]]) {    
+            
+            float4 color_arista = float4(0.0, 0.0, 1.0, 1.0);
+            
+            float4 color_cara = float4(1.0, 1.0, 1.0, 1.0);
+            
+            return (in.edge > 0.5) ? color_arista : color_cara;
+        }
+        """
 
-    struct Uniforms { float4x4 mvp; };
-
-    struct VertIn {
-        float3 vert   [[attribute(0)]];
-        float  edge   [[attribute(1)]];
-        float3 offset [[attribute(2)]];
-    };
-
-    struct VertOut {
-        float4 pos  [[position]];
-        float  edge;
-    };
-
-    vertex VertOut vert_main(VertIn in [[stage_in]],
-                            constant Uniforms &u [[buffer(2)]]) {
-        VertOut out;
-        out.pos  = u.mvp * float4(in.vert + in.offset, 1.0);
-        out.edge = in.edge;
-        return out;
-    }
-
-    fragment float4 frag_main(VertOut in [[stage_in]]) {
-        return (in.edge > 0.5)
-            ? float4(0, 1, 0, 1)   // aristas verdes
-            : float4(1, 1, 1, 1);  // caras blancas
-    }
-    """
-
-        # ── Init glfw ──────────────────────────────────────────────────────────
         if not glfw.init():
             raise RuntimeError("glfw.init() falló")
-        glfw.window_hint(glfw.CLIENT_API, glfw.NO_API)   # sin OpenGL
-        window = glfw.create_window(self.width, self.height,
-            f"Game of Life 3D [Metal {'Apple Silicon' if IS_SILICON else 'macOS'}]",
-            None, None)
+        glfw.window_hint(glfw.CLIENT_API, glfw.NO_API)
+        window = glfw.create_window(self.width, self.height, f"Game of Life 3D [Metal]", None, None)
         if not window:
             glfw.terminate()
-            raise RuntimeError("No se pudo crear la ventana glfw")
+            raise RuntimeError("No ventana")
 
-        # ── Obtener MTLDevice (GPU) ─────────────────────────────────────────────
-        pool    = NSAutoreleasePool.alloc().init()
+        pool = NSAutoreleasePool.alloc().init()
         devices = Metal.MTLCopyAllDevices()
-        device  = devices[0]
-        print(f"[Metal] GPU: {device.name()}")
+        device = next((d for d in devices if "radeon" in d.name().lower() or "amd" in d.name().lower()), devices[0])
+        print(device)
 
-        # ── CAMetalLayer (surface de presentación) ─────────────────────────────
-        # Obtener NSWindow desde glfw y añadir una CAMetalLayer
+        # Layer setup (igual)
         from ctypes import cdll, c_void_p
-        glfw_lib  = cdll.LoadLibrary(glfw.get_cocoa_library_path() if hasattr(glfw, 'get_cocoa_library_path') else 'libglfw.3.dylib')
+        glfw_lib = cdll.LoadLibrary(glfw.get_cocoa_library_path() if hasattr(glfw, 'get_cocoa_library_path') else 'libglfw.3.dylib')
         ns_window = c_void_p(glfw.get_cocoa_window(window))
-
         layer = Metal.CAMetalLayer.layer()
         layer.setDevice_(device)
         pixel_fmt = Metal.MTLPixelFormatBGRA8Unorm
         layer.setPixelFormat_(pixel_fmt)
         layer.setFramebufferOnly_(True)
-
-        # Asociar la layer a la ventana vía ObjC runtime
         ns_view = objc.objc_object(c_void_p=ns_window.value)
         try:
-            content_view = ns_view.contentView()
-            content_view.setLayer_(layer)
-            content_view.setWantsLayer_(True)
-        except Exception as e:
-            print(f"[Metal] Advertencia al configurar layer: {e}")
+            ns_view.contentView().setLayer_(layer)
+            ns_view.contentView().setWantsLayer_(True)
+        except:
+            pass
 
-        # ── Compilar shaders ───────────────────────────────────────────────────
-        err    = objc.nil
-        lib, err = device.newLibraryWithSource_options_error_(MSL_SHADER, None, None)
-        if lib is None:
-            raise RuntimeError(f"Error compilando shaders MSL: {err}")
+        # Pipeline y buffers (simplificado)
+        lib, _ = device.newLibraryWithSource_options_error_(MSL_SHADER, None, None)
         vert_fn = lib.newFunctionWithName_("vert_main")
         frag_fn = lib.newFunctionWithName_("frag_main")
-        print("[Metal] Shaders MSL compilados OK")
 
-        # ── Vertex descriptor ──────────────────────────────────────────────────
-        # pyobjc: usar objectAtIndexedSubscript_ en lugar de [] y set* en lugar de *_
         vdesc = Metal.MTLVertexDescriptor.vertexDescriptor()
         a = vdesc.attributes().objectAtIndexedSubscript_
         l = vdesc.layouts().objectAtIndexedSubscript_
+        a(0).setFormat_(Metal.MTLVertexFormatFloat3); a(0).setOffset_(0); a(0).setBufferIndex_(0)
+        a(1).setFormat_(Metal.MTLVertexFormatFloat); a(1).setOffset_(12); a(1).setBufferIndex_(0)
+        a(2).setFormat_(Metal.MTLVertexFormatFloat3); a(2).setOffset_(0); a(2).setBufferIndex_(1)
+        l(0).setStride_(16); l(0).setStepFunction_(Metal.MTLVertexStepFunctionPerVertex)
+        l(1).setStride_(12); l(1).setStepFunction_(Metal.MTLVertexStepFunctionPerInstance)
 
-        # attr 0: vert  (float3, offset 0,  buffer 0, per-vertex)
-        a(0).setFormat_(Metal.MTLVertexFormatFloat3)
-        a(0).setOffset_(0)
-        a(0).setBufferIndex_(0)
-        # attr 1: edge  (float,  offset 12, buffer 0, per-vertex)
-        a(1).setFormat_(Metal.MTLVertexFormatFloat)
-        a(1).setOffset_(12)
-        a(1).setBufferIndex_(0)
-        # attr 2: offset (float3, offset 0, buffer 1, per-instance)
-        a(2).setFormat_(Metal.MTLVertexFormatFloat3)
-        a(2).setOffset_(0)
-        a(2).setBufferIndex_(1)
-        # layouts
-        l(0).setStride_(16)
-        l(0).setStepFunction_(Metal.MTLVertexStepFunctionPerVertex)
-        l(1).setStride_(12)
-        l(1).setStepFunction_(Metal.MTLVertexStepFunctionPerInstance)
-        # ── Depth stencil ──────────────────────────────────────────────────────
-        depth_fmt  = Metal.MTLPixelFormatDepth32Float
-        ds_desc    = Metal.MTLDepthStencilDescriptor.alloc().init()
+        depth_fmt = Metal.MTLPixelFormatDepth32Float
+        ds_desc = Metal.MTLDepthStencilDescriptor.alloc().init()
         ds_desc.setDepthCompareFunction_(Metal.MTLCompareFunctionLess)
         ds_desc.setDepthWriteEnabled_(True)
         depth_state = device.newDepthStencilStateWithDescriptor_(ds_desc)
 
-        depth_tex = None
-        def make_depth_tex(w, h):
-            td = Metal.MTLTextureDescriptor.texture2DDescriptorWithPixelFormat_width_height_mipmapped_(
-                depth_fmt, w, h, False)
-            td.setUsage_(Metal.MTLTextureUsageRenderTarget)
-            td.setStorageMode_(Metal.MTLStorageModePrivate)
-            return device.newTextureWithDescriptor_(td)
-        depth_tex = make_depth_tex(self.width, self.height)
+        pd = Metal.MTLRenderPipelineDescriptor.alloc().init()
+        pd.setVertexFunction_(vert_fn)
+        pd.setFragmentFunction_(frag_fn)
+        pd.setVertexDescriptor_(vdesc)
+        pd.colorAttachments().objectAtIndexedSubscript_(0).setPixelFormat_(pixel_fmt)
+        pd.setDepthAttachmentPixelFormat_(depth_fmt)
+        pipeline, _ = device.newRenderPipelineStateWithDescriptor_error_(pd, None)
+        self.pipeline = pipeline
+        self.depth_state = depth_state
 
-        # ── Render pipeline ────────────────────────────────────────────────────
-        def make_pipeline(primitive_topology=None):
-            pd = Metal.MTLRenderPipelineDescriptor.alloc().init()
-            pd.setVertexFunction_(vert_fn)
-            pd.setFragmentFunction_(frag_fn)
-            pd.setVertexDescriptor_(vdesc)
-            pd.colorAttachments().objectAtIndexedSubscript_(0).setPixelFormat_(pixel_fmt)
-            pd.setDepthAttachmentPixelFormat_(depth_fmt)
-            pipe, err = device.newRenderPipelineStateWithDescriptor_error_(pd, None)
-            if pipe is None:
-                raise RuntimeError(f"Pipeline error: {err}")
-            return pipe
-
-        pipeline = make_pipeline()
-        cmd_queue = device.newCommandQueue()
-
-        # ── Geometría ──────────────────────────────────────────────────────────
-        faces, normals, face_flags, edges, edge_flags = self.make_cube_geometry()
-
+        # Geometría
+        faces, _, face_flags, edges, edge_flags = self.make_cube_geometry()
         def interleave(verts, flags):
             return np.column_stack([verts, flags]).astype(np.float32)
-
-        face_data  = interleave(faces, face_flags)
-        edge_data  = interleave(edges, edge_flags)
+        face_data = interleave(faces, face_flags)
+        edge_data = interleave(edges, edge_flags)
 
         def make_buf(data):
             arr = np.ascontiguousarray(data, dtype=np.float32)
-            return device.newBufferWithBytes_length_options_(
-                arr.tobytes(), arr.nbytes, Metal.MTLResourceStorageModeShared)
+            return device.newBufferWithBytes_length_options_(arr.tobytes(), arr.nbytes, Metal.MTLResourceStorageModeShared)
 
-        vbuf_faces   = make_buf(face_data)
-        vbuf_edges   = make_buf(edge_data)
-        offsets_buf  = make_buf(self.all_points)
-        # uniform_buf se crea cada frame con newBufferWithBytes_length_options_
+        vbuf_faces = make_buf(face_data)
+        vbuf_edges = make_buf(edge_data)
+        offsets_buf = make_buf(self.all_points)
 
+        uniform_buffers = [device.newBufferWithLength_options_(64, Metal.MTLResourceStorageModeShared) for _ in range(3)]
+        current_uniform_idx = 0
         n_fv = len(face_data)
         n_ev = len(edge_data)
 
-        # ── Estado mutable ─────────────────────────────────────────────────────
-        S = {"rx": 0.0, "ry": 0.0, "dist": self.base_dist,
-            "last_scroll_y": 0.0, "w": self.width, "h": self.height}
+        # Cámara inicial más segura
+        cam = {"x": self.CX, "y": self.CY + 10, "z": self.CZ + 80, "yaw": -90, "pitch": -20, "speed": 1.2}
+        S = {"w": self.width, "h": self.height, "dirty": True}
+        self.last_generation = getattr(self, 'generation', 0)
+        self.depth_tex = None
 
-        def scroll_cb(win, dx, dy):
-            speed = max(1.0, S["dist"] * 0.05)
-            S["dist"] = max(self.zoom_min, S["dist"] - dy * speed)
+        cmd_queue = device.newCommandQueue()
+        print(f"[DEBUG] Centrado en ({self.CX:.1f}, {self.CY:.1f}, {self.CZ:.1f}) | Celdas: {self.N}")
 
-        glfw.set_scroll_callback(window, scroll_cb)
+        def update_metal_buffer(metal_buf, np_array):
+            data_bytes = np_array.tobytes()
+            # PyObjC envuelve el void* en un objc.varlist.
+            # .as_buffer(size) nos da acceso directo a esa memoria en C para sobreescribirla.
+            metal_buf.contents().as_buffer(len(data_bytes))[:] = data_bytes
 
-        print(f"[Metal] Renderizando {self.N} instancias | Controles: flechas=rotar  scroll=zoom  R=reset")
+        # Asegúrate de definir esto ANTES del while si no lo has hecho
+        # visible_generations = 50 
 
         while not glfw.window_should_close(window):
             glfw.poll_events()
 
-            # Teclado
             def key(k): return glfw.get_key(window, k) == glfw.PRESS
-            if key(glfw.KEY_LEFT):  S["ry"] += 1
-            if key(glfw.KEY_RIGHT): S["ry"] -= 1
-            if key(glfw.KEY_UP):    S["rx"] -= 1
-            if key(glfw.KEY_DOWN):  S["rx"] += 1
-            if key(glfw.KEY_EQUAL) or key(glfw.KEY_KP_ADD):
-                S["dist"] = max(self.zoom_min, S["dist"] - max(1.0, S["dist"] * 0.02))
-            if key(glfw.KEY_MINUS) or key(glfw.KEY_KP_SUBTRACT):
-                S["dist"] += max(1.0, S["dist"] * 0.02)
+            moved = False
+
+            if key(glfw.KEY_W): cam["x"] += cam["speed"]*np.cos(np.radians(cam["yaw"])); cam["z"] += cam["speed"]*np.sin(np.radians(cam["yaw"])); moved=True
+            if key(glfw.KEY_S): cam["x"] -= cam["speed"]*np.cos(np.radians(cam["yaw"])); cam["z"] -= cam["speed"]*np.sin(np.radians(cam["yaw"])); moved=True
+            if key(glfw.KEY_A): cam["x"] += cam["speed"]*np.cos(np.radians(cam["yaw"]-90)); cam["z"] += cam["speed"]*np.sin(np.radians(cam["yaw"]-90)); moved=True
+            if key(glfw.KEY_D): cam["x"] += cam["speed"]*np.cos(np.radians(cam["yaw"]+90)); cam["z"] += cam["speed"]*np.sin(np.radians(cam["yaw"]+90)); moved=True
+            if key(glfw.KEY_SPACE): cam["y"] += cam["speed"]; moved = True
+            if key(glfw.KEY_LEFT_SHIFT): cam["y"] -= cam["speed"]; moved = True
+
+            if key(glfw.KEY_LEFT): cam["yaw"] -= 3; moved = True
+            if key(glfw.KEY_RIGHT): cam["yaw"] += 3; moved = True
+            if key(glfw.KEY_UP): cam["pitch"] = min(89, cam["pitch"] + 3); moved = True
+            if key(glfw.KEY_DOWN): cam["pitch"] = max(-89, cam["pitch"] - 3); moved = True
+            
             if key(glfw.KEY_R):
-                S["rx"] = S["ry"] = 0.0; S["dist"] = self.base_dist
+                cam["x"] = self.CX
+                cam["y"] = self.CY + 10
+                cam["z"] = self.CZ + 80
+                cam["yaw"] = -90
+                cam["pitch"] = -20
+                moved = True
+                
+            if key(glfw.KEY_O) or key(glfw.KEY_KP_ADD): 
+                visible_generations = min(1000, visible_generations + 2)
+                moved = True
+            if key(glfw.KEY_I) or key(glfw.KEY_KP_SUBTRACT): 
+                visible_generations = max(5, visible_generations - 2)
+                moved = True
 
-            # MVP → uniform buffer
-            # MVP → uniform buffer
-            mvp = self.compute_mvp(S["rx"], S["ry"], S["dist"], 
-                                cam_x=0.0, cam_y=0.0, cam_z=0.0)
-            mvp_bytes = mvp.T.astype(np.float32).tobytes()
-            # Crear buffer de uniforms con los bytes directamente (más simple y confiable)
-            uniform_buf = device.newBufferWithBytes_length_options_(
-                mvp_bytes, 64, Metal.MTLResourceStorageModeShared)
+            # MVP
+            mvp = self.compute_mvp(cam["x"], cam["y"], cam["z"], cam["yaw"], cam["pitch"])
 
-            # Obtener drawable de la CAMetalLayer
+            # --- FILTRADO DE DISTANCIA (CULLING) ---
+            z_cam = cam["z"]
+            dist_z = np.abs(self.all_points[:, 2] - z_cam)
+            mask = dist_z <= visible_generations
+            visible_points = self.all_points[mask]
+            
+            # Obtenemos la nueva cantidad de instancias a dibujar
+            instance_count = len(visible_points)
+
+            # Actualizamos el buffer SOLO con los puntos visibles
+            if instance_count > 0:
+                update_metal_buffer(offsets_buf, visible_points.astype(np.float32))
+
+            # --- ACTUALIZACIÓN DE UNIFORMS (Matriz) ---
+            uniform_buf = uniform_buffers[current_uniform_idx]
+            update_metal_buffer(uniform_buf, mvp.T.astype(np.float32))
+            current_uniform_idx = (current_uniform_idx + 1) % 3
+
+            # --- RENDER PASS ---
             drawable = layer.nextDrawable()
-            if drawable is None:
+            if not drawable: 
                 continue
 
-            # Resize depth si cambia el tamaño
             fw, fh = glfw.get_framebuffer_size(window)
-            if (fw, fh) != (S["w"], S["h"]):
-                depth_tex = make_depth_tex(fw, fh)
+            if self.depth_tex is None or (fw, fh) != (S["w"], S["h"]):
+                td = Metal.MTLTextureDescriptor.texture2DDescriptorWithPixelFormat_width_height_mipmapped_(depth_fmt, fw, fh, False)
+                td.setUsage_(Metal.MTLTextureUsageRenderTarget)
+                td.setStorageMode_(Metal.MTLStorageModePrivate)
+                self.depth_tex = device.newTextureWithDescriptor_(td)
                 layer.setDrawableSize_((fw, fh))
                 S["w"], S["h"] = fw, fh
-
-            # Render pass descriptor
+            
             rpd = Metal.MTLRenderPassDescriptor.renderPassDescriptor()
-            rpd.colorAttachments().objectAtIndexedSubscript_(0).setTexture_(drawable.texture())
-            rpd.colorAttachments().objectAtIndexedSubscript_(0).setLoadAction_(Metal.MTLLoadActionClear)
-            rpd.colorAttachments().objectAtIndexedSubscript_(0).setClearColor_(Metal.MTLClearColorMake(0.05, 0.05, 0.1, 1.0))
-            rpd.colorAttachments().objectAtIndexedSubscript_(0).setStoreAction_(Metal.MTLStoreActionStore)
-            rpd.depthAttachment().setTexture_(depth_tex)
+            color_att = rpd.colorAttachments().objectAtIndexedSubscript_(0)
+            color_att.setTexture_(drawable.texture())
+            color_att.setLoadAction_(Metal.MTLLoadActionClear)
+            # Un azul oscuro para notar que Metal sí está limpiando el frame
+            color_att.setClearColor_(Metal.MTLClearColorMake(0.1, 0.1, 0.2, 1.0)) 
+            color_att.setStoreAction_(Metal.MTLStoreActionStore)
+
+            rpd.depthAttachment().setTexture_(self.depth_tex)
             rpd.depthAttachment().setLoadAction_(Metal.MTLLoadActionClear)
             rpd.depthAttachment().setClearDepth_(1.0)
             rpd.depthAttachment().setStoreAction_(Metal.MTLStoreActionDontCare)
 
             cmd_buf = cmd_queue.commandBuffer()
-            enc     = cmd_buf.renderCommandEncoderWithDescriptor_(rpd)
+            enc = cmd_buf.renderCommandEncoderWithDescriptor_(rpd)
+            enc.setRenderPipelineState_(self.pipeline)
+            enc.setDepthStencilState_(self.depth_state)
+            
+            # Dibujado
+            enc.setVertexBuffer_offset_atIndex_(uniform_buf, 0, 2)
 
-            enc.setRenderPipelineState_(pipeline)
-            enc.setDepthStencilState_(depth_state)
-            enc.setVertexBuffer_offset_atIndex_(uniform_buf, 0, 2)  # uniforms en buffer(2)
+            if instance_count > 0:
+                # Caras
+                enc.setVertexBuffer_offset_atIndex_(vbuf_faces, 0, 0)
+                enc.setVertexBuffer_offset_atIndex_(offsets_buf, 0, 1)
+                enc.drawPrimitives_vertexStart_vertexCount_instanceCount_(Metal.MTLPrimitiveTypeTriangle, 0, n_fv, instance_count)
 
-            # Caras
-            enc.setVertexBuffer_offset_atIndex_(vbuf_faces, 0, 0)
-            enc.setVertexBuffer_offset_atIndex_(offsets_buf, 0, 1)
-            enc.drawPrimitives_vertexStart_vertexCount_instanceCount_(
-                Metal.MTLPrimitiveTypeTriangle, 0, n_fv, self.N)
-
-            # Aristas
-            enc.setVertexBuffer_offset_atIndex_(vbuf_edges, 0, 0)
-            enc.setVertexBuffer_offset_atIndex_(offsets_buf, 0, 1)
-            enc.drawPrimitives_vertexStart_vertexCount_instanceCount_(
-                Metal.MTLPrimitiveTypeLine, 0, n_ev, self.N)
+                # Bordes
+                enc.setVertexBuffer_offset_atIndex_(vbuf_edges, 0, 0)
+                enc.setVertexBuffer_offset_atIndex_(offsets_buf, 0, 1)
+                enc.drawPrimitives_vertexStart_vertexCount_instanceCount_(Metal.MTLPrimitiveTypeLine, 0, n_ev, instance_count)
 
             enc.endEncoding()
             cmd_buf.presentDrawable_(drawable)
