@@ -2,11 +2,21 @@ import json
 import numpy as np
 import pygame
 import config
+import os
+import sys
 
 from widgets.popup import Popup
 from widgets.button import Button
 
-PRESET_PATH = "presets/rules.json"
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+PRESET_PATH = resource_path("presets/rules.json")
 
 class PresetPopup(Popup):
 

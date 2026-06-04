@@ -83,4 +83,11 @@ Thumbs.db
 
 # Archivos de base de datos locales
 *.sqlite3
-db.sqlite3
+db.sqlite3OSX2DCASM.pkg
+component.plist
+expanded/
+expanded_pkg/
+expanded_test/
+pkg_contents/
+pkgroot/
+temp_pkg/
