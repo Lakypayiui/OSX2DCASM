@@ -73,7 +73,6 @@ class Display3D:
 
     def compute_mvp(self, cam_x, cam_y, cam_z, yaw, pitch):
         """Cámara libre corregida y más estable"""
-        import numpy as np
         
         proj = self.perspective(45, self.width / self.height, 0.1, 2000.0)
         
@@ -232,7 +231,6 @@ class Display3D:
         import Metal
         import objc
         from Foundation import NSAutoreleasePool
-        import numpy as np
         # Distancia de renderizado
         visible_generations = 100
         MSL_SHADER = """
@@ -398,8 +396,7 @@ class Display3D:
             mvp = self.compute_mvp(cam["x"], cam["y"], cam["z"], cam["yaw"], cam["pitch"])
 
             # --- FILTRADO DE DISTANCIA (CULLING) ---
-            z_cam = cam["z"]
-            dist_z = np.abs(self.all_points[:, 2] - z_cam)
+            dist_z = np.abs(self.all_points[:, 2] - cam["z"])
             mask = dist_z <= visible_generations
             visible_points = self.all_points[mask]
             
@@ -475,7 +472,7 @@ class Display3D:
             from OpenGL.GL import (
                 GL_VERSION, GL_DEPTH_TEST,
                 GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT,
-                GL_ARRAY_BUFFER, GL_STATIC_DRAW,
+                GL_ARRAY_BUFFER, GL_STATIC_DRAW, GL_UNIFORM_BUFFER,
                 GL_FLOAT, GL_FALSE, GL_TRIANGLES, GL_LINES,
                 glGetString, glEnable, glViewport,
                 glClearColor, glClear, glUseProgram,
@@ -562,7 +559,8 @@ class Display3D:
                 if not glGetProgramiv(p, GL_LINK_STATUS):
                     raise RuntimeError(glGetProgramInfoLog(p).decode())
                 return p
-
+            
+            
             pygame.init()
             display = (self.width, self.height)
             pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MAJOR_VERSION, 4)
@@ -581,6 +579,12 @@ class Display3D:
             mvp_loc = glGetUniformLocation(prog, "mvp")
 
             faces, normals, face_flags, edges, edge_flags = self.make_cube_geometry()
+
+            def interleave(verts, flags):
+                return np.column_stack([verts, flags]).astype(np.float32)
+
+            face_data = interleave(faces, face_flags)
+            edge_data = interleave(edges, edge_flags)
 
             def build_vao(verts, flags, normals):
                 vao = glGenVertexArrays(1)
@@ -604,8 +608,6 @@ class Display3D:
             vao_f, n_fv = build_vao(faces, face_flags, normals)
             vao_e, n_ev = build_vao(edges, edge_flags, normals)
 
-            CHUNK_SIZE = 16
-
             chunk_data, chunk_bounds = self.get_chunks()
 
             chunk_vbos = {}
@@ -621,55 +623,73 @@ class Display3D:
             glEnable(GL_DEPTH_TEST)
             glEnable(GL_CULL_FACE)
             glCullFace(GL_BACK)
-            rx = ry = 0.0
-            cam_x, cam_y, cam_z = 0.0, 0.0, 0.0
-            mouse_down = False
-            sensitivity = 0.2
-            dist  = self.base_dist
+
             clock = pygame.time.Clock()
             running = True
+
+            cam = {"x": self.CX, "y": self.CY + 10, "z": self.CZ + 80, "yaw": -90, "pitch": -20, "speed": 1.2}
+
+            visible_generations = 100
+
 
             while running:
                 for e in pygame.event.get():
                     if e.type == pygame.QUIT:
                         running = False
-                    elif e.type == pygame.MOUSEBUTTONDOWN:
-                        if e.button == 1:  # click izquierdo
-                            mouse_down = True
-
-                    elif e.type == pygame.MOUSEBUTTONUP:
-                        if e.button == 1:
-                            mouse_down = False
-
-                    elif e.type == pygame.MOUSEMOTION:
-                        if mouse_down:
-                            dx, dy = e.rel
-                            ry += dx * sensitivity
-                            rx += dy * sensitivity
-
-                    elif e.type == pygame.MOUSEWHEEL:
-                        speed = max(1.0, dist * 0.05)
-                        dist -= e.y * speed
-                        dist  = max(self.zoom_min, dist)
-                        
-                    elif e.type == pygame.KEYDOWN:
-                        if e.key == pygame.K_r:
-                            rx = ry = 0.0; dist = self.base_dist; cam_x = cam_y = cam_z = 0.0
+                    
 
                 keys = pygame.key.get_pressed()
-                speed = 1.0
-                if keys[pygame.K_LEFT]:  cam_x -= speed
-                if keys[pygame.K_RIGHT]: cam_x += speed
-                if keys[pygame.K_UP]:    cam_y += speed
-                if keys[pygame.K_DOWN]:  cam_y -= speed
-                if keys[pygame.K_EQUALS] or keys[pygame.K_PLUS]:
-                    dist = max(self.zoom_min, dist - max(1.0, dist * 0.1))
-                if keys[pygame.K_MINUS]:
-                    dist += max(1.0, dist * 0.1)
 
-                mvp = self.compute_mvp(rx, ry, dist, cam_x, cam_y, cam_z)
-                #print(f"Cam pos: ({cam_x:.1f}, {cam_y:.1f}, {cam_z:.1f})  |  Dist: {dist:.1f}  |  Rot: ({rx:.1f}, {ry:.1f})  |  Instancias: {N}")
-                glClearColor(0.05, 0.05, 0.1, 1.0)
+                if keys[pygame.K_w]:
+                    cam["x"] += cam["speed"] * np.cos(np.radians(cam["yaw"]))
+                    cam["z"] += cam["speed"] * np.sin(np.radians(cam["yaw"]))
+
+                if keys[pygame.K_s]:
+                    cam["x"] -= cam["speed"] * np.cos(np.radians(cam["yaw"]))
+                    cam["z"] -= cam["speed"] * np.sin(np.radians(cam["yaw"]))
+
+                if keys[pygame.K_a]:
+                    cam["x"] += cam["speed"] * np.cos(np.radians(cam["yaw"] - 90))
+                    cam["z"] += cam["speed"] * np.sin(np.radians(cam["yaw"] - 90))
+
+                if keys[pygame.K_d]:
+                    cam["x"] += cam["speed"] * np.cos(np.radians(cam["yaw"] + 90))
+                    cam["z"] += cam["speed"] * np.sin(np.radians(cam["yaw"] + 90))
+
+                if keys[pygame.K_SPACE]:
+                    cam["y"] += cam["speed"]
+
+                if keys[pygame.K_LSHIFT]:
+                    cam["y"] -= cam["speed"]
+
+                if keys[pygame.K_LEFT]:
+                    cam["yaw"] -= 3
+
+                if keys[pygame.K_RIGHT]:
+                    cam["yaw"] += 3
+
+                if keys[pygame.K_UP]:
+                    cam["pitch"] = min(89, cam["pitch"] + 3)
+
+                if keys[pygame.K_DOWN]:
+                    cam["pitch"] = max(-89, cam["pitch"] - 3)
+
+                if keys[pygame.K_r]:
+                    cam["x"] = self.CX
+                    cam["y"] = self.CY + 10
+                    cam["z"] = self.CZ + 80
+                    cam["yaw"] = -90
+                    cam["pitch"] = -20
+
+                if keys[pygame.K_o] or keys[pygame.K_KP_PLUS]:
+                    visible_generations = min(1000, visible_generations + 1)
+
+                if keys[pygame.K_i] or keys[pygame.K_KP_MINUS]:
+                    visible_generations = max(1, visible_generations - 1)
+
+                mvp = self.compute_mvp(cam["x"], cam["y"], cam["z"], cam["yaw"], cam["pitch"])
+
+                glClearColor(0.1, 0.1, 0.2, 1.0)
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
                 glUseProgram(prog)
@@ -692,7 +712,10 @@ class Display3D:
 
                 for key in visible_chunks:
                     pts = chunk_data[key]
-                    visible_pts.append(pts)
+                    pts = pts[pts[:, 2] <= visible_generations]
+
+                    if len(pts):
+                        visible_pts.append(pts)
 
                 if len(visible_pts) == 0:
                     continue
