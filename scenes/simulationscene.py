@@ -59,7 +59,6 @@ class SimulationScene:
         self.matriz_regla = MatrizRegla()
         self.life = Life2DM(width, height)
         self.history = []
-        self.display3d = None
 
         
         # Panel
@@ -631,7 +630,6 @@ class SimulationScene:
 
         elif b is self.btn_view_3d:
             if self.life.history:
-                self.display3d = Display3D(self.life.history)
                 self.launch_3d_view()
 
         elif b is self.btn_ocultar_panel:
