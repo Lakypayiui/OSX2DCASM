@@ -224,6 +224,7 @@ class Display3D:
         return faces, normals, face_flags, edges, edge_flags
 
     def macos_3d_render(self):
+        print(f"[Metal 3D] Iniciando render desde PID = {os.getpid()}")
         import glfw
         import ctypes
         import Metal

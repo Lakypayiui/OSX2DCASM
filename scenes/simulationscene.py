@@ -18,14 +18,18 @@ from widgets.saverulepopup import SaveRulePopup
 from widgets.confirmoverwritepopup import ConfirmOverwritePopup
 import os
 
+main_pid = int(os.environ.get('MAIN_PID', 0))
+if main_pid == 0 or os.getpid() == main_pid:
+    print("SimulationScene cargado PID =", os.getpid())
+else:
+    print(f"[Child Process] SimulationScene cargado PID = {os.getpid()} (secundario)")
 def open_gl_window(history):
-
+    os.environ['MAIN_PID'] = str(os.getpid())  # forzar que este sea considerado principal para el 3D
+    print("open_gl_window PID =", os.getpid())
+    
     renderer = Display3D(history)
-
     if PLATFORM == "Darwin":
         renderer.macos_3d_render()
-    elif PLATFORM == "Windows":
-        renderer.open_gl_render()
     else:
         renderer.open_gl_render()
 
@@ -530,13 +534,21 @@ class SimulationScene:
                 self.kernel.handle_click(ev.pos)
 
     def launch_3d_view(self):
+        if not self.life.history:
+            return
+
+        print(f"[3D] Lanzando proceso separado - PID principal = {os.getpid()}")
+
+        from multiprocessing import Process
 
         p = Process(
             target=open_gl_window,
-            args=(self.life.history,)
+            args=(self.life.history.copy(),),   # copy para evitar problemas
+            daemon=True
         )
-
         p.start()
+        print(f"[3D] Proceso lanzado con PID = {p.pid}")
+       
 
     def _paint_cell(self, pos):
 
