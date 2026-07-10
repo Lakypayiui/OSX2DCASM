@@ -16,7 +16,6 @@ class SaveRulePopup(Popup):
         super().__init__(rect, "Save rule")
 
         self.rule = np.asarray(rule, dtype=np.uint8)
-        print("Rule to save:", self.rule)
 
         self.input_name = InputBox(
             (

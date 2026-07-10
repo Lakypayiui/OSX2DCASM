@@ -6,13 +6,15 @@ from widgets.button import Button
 
 class ConfirmOverwritePopup(Popup):
 
-    def __init__(self, rect):
-
-        super().__init__(rect, "Rule already exists")
+    def __init__(self, rect, object_type):
+        
+        super().__init__(rect)
 
         self.rule_name = ""
 
         self.result = None
+
+        self.object_type = object_type
 
         self.btn_overwrite = Button(
             (
@@ -41,6 +43,13 @@ class ConfirmOverwritePopup(Popup):
         self.result = None
 
         self.visible = True
+
+        if self.object_type == "Rule":
+            self.title = "Rule already exists"
+        else:
+            self.title = "Title already exists"
+        print(self.title)
+        print(self.rule_name)
 
     def handle_event(self, ev):
 
@@ -79,17 +88,24 @@ class ConfirmOverwritePopup(Popup):
         return None
 
     def draw(self, screen):
-
+        
         super().draw(screen)
 
         if not self.visible:
             return
-
-        text1 = self.fn.render(
-            "A rule with this name already exists.",
-            True,
-            self.title_color
-        )
+        if self.object_type == "Rule":
+            text1 = self.fn.render(
+                "A rule with this name already exists.",
+                True,
+                self.title_color
+            )
+        else:
+            text1 = self.fn.render(
+                "A file with this name already exists.",
+                True,
+                self.title_color
+            )
+            
 
         screen.blit(
             text1,

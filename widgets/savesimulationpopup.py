@@ -32,7 +32,7 @@ class SaveSimulationPopup(Popup):
 
         self.btn_save = Button(
             (
-                self.rect.x + 20,
+                self.rect.x + self.rect.width//2 - 60,
                 self.rect.bottom - 60,
                 120,
                 32
@@ -64,7 +64,7 @@ class SaveSimulationPopup(Popup):
 
         filename = self.input_name.text.strip()
 
-        if not filename:
+        if not filename :
             return "empty"
 
         os.makedirs(

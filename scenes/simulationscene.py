@@ -18,11 +18,7 @@ from widgets.saverulepopup import SaveRulePopup
 from widgets.confirmoverwritepopup import ConfirmOverwritePopup
 import os
 
-print("SimulationScene cargado PID =", os.getpid())
-
 def open_gl_window(history):
-
-    print("SimulationScene cargado PID =", os.getpid())
 
     renderer = Display3D(history)
 
@@ -99,6 +95,8 @@ class SimulationScene:
 
         self.x_kern_info = KERN_X + self.kernel.total_w + 16
         self.y_kern_info = y
+
+        print("SimulationScene cargado PID =", os.getpid())
 
         # =========================================================
         # HELPERS
@@ -331,7 +329,8 @@ class SimulationScene:
                 (self.screen.get_height() - 300) // 2,
                 500,
                 300
-            )
+            ),
+            "File"
         )
 
         self.save_state_popup = SaveSimulationPopup(
@@ -459,8 +458,9 @@ class SimulationScene:
             # Popup Save Preset
             if not self.show_confirm:
                 save_result = self.save_preset_popup.handle_event(ev)
-
+                
                 if save_result == "exists":
+                    self.confirm_popup.object_type = "Rule"
                     self.confirm_popup.open(
                         self.save_preset_popup.input_name.text
                     )
@@ -468,17 +468,35 @@ class SimulationScene:
                 elif save_result == "saved":
                     self.preset_popup.load_presets()
                     print("Rule saved")
+                
+            # Popup Save State
+                save_state = self.save_state_popup.handle_event(ev)
+                
+                if save_state == "exists":
+                    self.confirm_popup.object_type = "File"
+                    self.confirm_popup.open(
+                        f"{self.save_state_popup.input_name.text.strip()}.txt"
+                    )
+                    self.confirm_popup.visible = True
+                    
+                    print(self.confirm_popup.visible)
 
+                elif save_state == "saved":
+                    print("State saved")
 
             confirm = self.confirm_popup.handle_event(ev)
 
             if confirm is True:
+                if self.confirm_popup.object_type == "Rule":
+                    self.save_preset_popup.save_rule(
+                        overwrite=True
+                    )
+                else:
+                    self.save_state_popup.save_simulation(
+                        overwrite=True
+                    )
 
-                self.save_preset_popup.save_rule(
-                    overwrite=True
-                )
-
-            if self.save_preset_popup.visible or self.preset_popup.visible:
+            if self.save_preset_popup.visible or self.preset_popup.visible or self.save_state_popup.visible:
                 self.show_popup = True
             else:
                 self.show_popup = False
@@ -487,6 +505,8 @@ class SimulationScene:
                 self.show_confirm = True
             else:
                 self.show_confirm = False
+
+            
 
             # Matriz regla
             if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
@@ -626,7 +646,10 @@ class SimulationScene:
             self.show_popup = True
             self.save_preset_popup.rule = self.matriz_regla.to_rule_array()
             self.save_preset_popup.open()
-            print("Save preset opened")
+
+        elif b is self.btn_save:
+            self.show_popup = True
+            self.save_state_popup.open(self.life.state, self.matriz_regla.to_rule_array(), self.life.gen)
 
         elif b is self.btn_view_3d:
             if self.life.history:
@@ -690,9 +713,11 @@ class SimulationScene:
                 self.screen,
                 self.fm
             )
-
+        self.save_state_popup.draw(self.screen)
         self.preset_popup.draw(self.screen)
         self.save_preset_popup.draw(self.screen)
+        
+        
         self.confirm_popup.draw(self.screen)
 
         pygame.display.flip()
