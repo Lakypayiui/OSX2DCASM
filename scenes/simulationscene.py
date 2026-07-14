@@ -16,6 +16,7 @@ from widgets.rgbselector import RGBSelector
 from widgets.presetpopup import PresetPopup
 from widgets.saverulepopup import SaveRulePopup
 from widgets.confirmoverwritepopup import ConfirmOverwritePopup
+from widgets.loadsimulationpopup import LoadSimulationPopup
 import os
 
 main_pid = int(os.environ.get('MAIN_PID', 0))
@@ -23,6 +24,7 @@ if main_pid == 0 or os.getpid() == main_pid:
     print("SimulationScene cargado PID =", os.getpid())
 else:
     print(f"[Child Process] SimulationScene cargado PID = {os.getpid()} (secundario)")
+    
 def open_gl_window(history):
     os.environ['MAIN_PID'] = str(os.getpid())  # forzar que este sea considerado principal para el 3D
     print("open_gl_window PID =", os.getpid())
@@ -260,6 +262,12 @@ class SimulationScene:
             y
         )
 
+        self.btn_load = btn_panel(
+            "Load",
+            1,
+            y
+        )
+
 
         y += 40
 
@@ -290,6 +298,7 @@ class SimulationScene:
             self.btn_evol_paso,
             self.btn_pause,
             self.btn_save,
+            self.btn_load,
             self.btn_view_3d,
             self.btn_limpiar_reg,
             self.btn_evolucion,
@@ -329,22 +338,32 @@ class SimulationScene:
 
         self.confirm_popup = ConfirmOverwritePopup(
             (
-                (self.screen.get_width() - 500) // 2,
-                (self.screen.get_height() - 300) // 2,
-                500,
-                300
+                (self.screen.get_width() - self.preset_w) // 2,
+                (self.screen.get_height() - self.preset_h) // 2,
+                self.preset_w,
+                self.preset_h,
             ),
             "File"
         )
 
         self.save_state_popup = SaveSimulationPopup(
             (
-                (self.screen.get_width() - 500) // 2,
-                (self.screen.get_height() - 300) // 2,
-                500,
-                300
+                (self.screen.get_width() - self.preset_w) // 2,
+                (self.screen.get_height() - self.preset_h) // 2,
+                self.preset_w,
+                self.preset_h,
             )
         )
+
+        self.load_state_popup = LoadSimulationPopup(
+            (
+                (self.screen.get_width() - self.preset_w) // 2,
+                (self.screen.get_height() - self.preset_h) // 2,
+                self.preset_w,
+                self.preset_h,
+            )
+        )
+
 
         # Camara
         self.scroll_x = 0
@@ -459,6 +478,17 @@ class SimulationScene:
                     self.matriz_regla.data
                 )
 
+            saved_state = self.load_state_popup.handle_event(ev)
+            if saved_state:
+
+                self.life.state = saved_state["state"]
+                self.life.rule = saved_state["rule"]
+                self.life.gen = saved_state["generation"]
+
+                self.matriz_regla.set_from_rule_array(
+                    saved_state["rule"]
+                )
+
             # Popup Save Preset
             if not self.show_confirm:
                 save_result = self.save_preset_popup.handle_event(ev)
@@ -500,7 +530,7 @@ class SimulationScene:
                         overwrite=True
                     )
 
-            if self.save_preset_popup.visible or self.preset_popup.visible or self.save_state_popup.visible:
+            if self.save_preset_popup.visible or self.preset_popup.visible or self.save_state_popup.visible or self.load_state_popup.visible:
                 self.show_popup = True
             else:
                 self.show_popup = False
@@ -663,6 +693,10 @@ class SimulationScene:
             self.show_popup = True
             self.save_state_popup.open(self.life.state, self.matriz_regla.to_rule_array(), self.life.gen)
 
+        elif b is self.btn_load:
+            self.show_popup = True
+            self.load_state_popup.open()
+
         elif b is self.btn_view_3d:
             if self.life.history:
                 self.launch_3d_view()
@@ -728,7 +762,7 @@ class SimulationScene:
         self.save_state_popup.draw(self.screen)
         self.preset_popup.draw(self.screen)
         self.save_preset_popup.draw(self.screen)
-        
+        self.load_state_popup.draw(self.screen)
         
         self.confirm_popup.draw(self.screen)
 
@@ -859,7 +893,10 @@ class SimulationScene:
         self.btn_pause.draw(surf, self.fm)
 
         self.btn_save.draw(surf, self.fm)
+
         self.btn_view_3d.draw(surf, self.fm)
+        
+        self.btn_load.draw(surf, self.fm)
 
         # =====================================================
         # COLORS
