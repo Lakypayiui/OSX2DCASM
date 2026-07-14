@@ -3,13 +3,13 @@ import config
 import pygame
 import numpy as np
 
-#  LOGICA DEL AUTOMATA  (numpy para velocidad)
+#  AUTOMATON LOGIC  (numpy for speed)
  
 class Life2DM:
     """
-    Automata celular 2D vecindad de Moore completa.
+    2D cellular automaton with full Moore neighborhood.
     state   : ndarray uint8 [GRID_H, GRID_W]
-    rule    : ndarray uint8 [512]  — rule[idx] = 0 o 1
+    rule    : ndarray uint8 [512]  — rule[idx] = 0 or 1
     """
     def __init__(self, width, height):
         self.width   = width
@@ -21,7 +21,7 @@ class Life2DM:
         self.history = []
      
     def sync_rule_from_matrix(self, matrix_data):
-        """matrix_data: lista[16][32]  -> self.rule[512]"""
+        """matrix_data: list[16][32]  -> self.rule[512]"""
         for i in range(16):
             for j in range(32):
                 idx = i * 32 + j
@@ -31,7 +31,7 @@ class Life2DM:
      
     def step(self):
         s = self.state
-        # Vecinos con toroide usando roll
+        # Neighbors with torus using roll
         nw = np.roll(np.roll(s,  1, 0),  1, 1)
         n  = np.roll(s,  1, 0)
         ne = np.roll(np.roll(s,  1, 0), -1, 1)
@@ -42,7 +42,7 @@ class Life2DM:
         ss = np.roll(s, -1, 0)
         se = np.roll(np.roll(s, -1, 0), -1, 1)
 
-        # Identificador: 9 bits (mismo orden que el original)
+        # Identifier: 9 bits (same order as original)
         idx = (nw.astype(np.uint16)        |
                n .astype(np.uint16) <<  1  |
                ne.astype(np.uint16) <<  2  |
@@ -88,23 +88,23 @@ class Life2DM:
         w_limit, h_limit = target_surf.get_size()
         rgb = np.full((h_limit, w_limit, 3), theme["bg"], dtype=np.uint8)
 
-        # 1. Tamaño TOTAL del mundo en píxeles (puede ser mucho mayor que la pantalla)
+        # 1. TOTAL world size in pixels (may be much larger than screen)
         total_w_px = self.width * config.CELL_PX
         total_h_px = self.height * config.CELL_PX
 
-        # 2. OFFSETS GLOBALES
-        # Si total_w_px < w_limit -> off_x es POSITIVO (centra el mundo pequeño)
-        # Si total_w_px > w_limit -> off_x es NEGATIVO (el mundo empieza fuera de pantalla, centrado)
+        # 2. GLOBAL OFFSETS
+        # If total_w_px < w_limit -> off_x is POSITIVE (centers the small world)
+        # If total_w_px > w_limit -> off_x is NEGATIVE (world starts off-screen, centered)
         global_off_x = (w_limit - total_w_px) // 2
         global_off_y = (h_limit - total_h_px) // 2
 
-        # 3. Aplicar el scroll a esos offsets
-        # El scroll desplaza el origen. Multiplicamos por CELL_PX porque el scroll es en celdas
+        # 3. Apply scroll to those offsets
+        # Scroll shifts the origin. Multiply by CELL_PX because scroll is in cells
         start_px_x = global_off_x - (scroll_x * config.CELL_PX)
         start_px_y = global_off_y - (scroll_y * config.CELL_PX)
 
-        # 4. Slicing para optimizar (solo lo que entra en el rectángulo de la pantalla)
-        # Calculamos qué índices de celda están cruzando los bordes de la pantalla
+        # 4. Slicing to optimize (only what fits in the screen rectangle)
+        # Calculate which cell indices cross the screen edges
         x0 = max(0, -start_px_x // config.CELL_PX)
         y0 = max(0, -start_px_y // config.CELL_PX)
         x1 = min(self.width, (w_limit - start_px_x) // config.CELL_PX + 1)
@@ -112,22 +112,22 @@ class Life2DM:
 
         view_state = self.state[y0:y1, x0:x1]
 
-        # 5. Dibujar celdas visibles
+        # 5. Draw visible cells
         ys, xs = np.where(view_state == 1)
         for cx, cy in zip(xs, ys):
-            # La posición real es: Inicio del mundo + (índice_relativo + índice_inicial) * tamaño
+            # Real position is: World start + (relative_index + start_index) * size
             px = start_px_x + (cx + x0) * config.CELL_PX + 1
             py = start_px_y + (cy + y0) * config.CELL_PX + 1
             
-            # Clipping de seguridad para no pintar fuera del array RGB
+            # Safety clipping to avoid painting outside the RGB array
             if 0 <= px < w_limit - config.CELL_PX and 0 <= py < h_limit - config.CELL_PX:
                 rgb[py : py + config.CELL_PX - 1, px : px + config.CELL_PX - 1] = theme["cell"]
 
-        # 6. Volcar a pantalla
+        # 6. Flush to screen
         pygame.surfarray.blit_array(target_surf, np.ascontiguousarray(rgb.swapaxes(0, 1)))
 
-        # 7. Malla (solo en el área visible del mundo)
-        # Dibujamos líneas desde el inicio real del mundo hasta su fin
+        # 7. Grid (only on visible world area)
+        # Draw lines from the actual world start to its end
         for i in range(x0, x1 + 1):
             lx = start_px_x + i * config.CELL_PX
             pygame.draw.line(target_surf, theme["grid"], (lx, max(0, start_px_y)), (lx, min(h_limit, start_px_y + total_h_px)))

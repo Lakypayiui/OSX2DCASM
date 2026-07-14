@@ -5,7 +5,7 @@ from multiprocessing import Process, set_start_method
 import config
 
 from life2dm import Life2DM
-from matrizregla import MatrizRegla
+from rule_matrix import RuleMatrix
 from kernel import Kernel3x3
 from display3d import Display3D, PLATFORM
 
@@ -21,12 +21,12 @@ import os
 
 main_pid = int(os.environ.get('MAIN_PID', 0))
 if main_pid == 0 or os.getpid() == main_pid:
-    print("SimulationScene cargado PID =", os.getpid())
+    print("SimulationScene loaded PID =", os.getpid())
 else:
-    print(f"[Child Process] SimulationScene cargado PID = {os.getpid()} (secundario)")
+    print(f"[Child Process] SimulationScene loaded PID = {os.getpid()} (secondary)")
     
 def open_gl_window(history):
-    os.environ['MAIN_PID'] = str(os.getpid())  # forzar que este sea considerado principal para el 3D
+    os.environ['MAIN_PID'] = str(os.getpid())  # force this to be considered main for 3D
     print("open_gl_window PID =", os.getpid())
     
     renderer = Display3D(history)
@@ -42,23 +42,23 @@ class SimulationScene:
 
         self.screen = screen
 
-        # Mundo
+        # World
         self.grid_width = width
         self.grid_height = height
 
-        # Fuentes
+        # Fonts
         self.fn  = pygame.font.SysFont("monospace", 14)
         self.fm  = pygame.font.SysFont("monospace", 14)
         self.fb  = pygame.font.SysFont("monospace", 14, bold=True)
         self.fxs = pygame.font.SysFont("monospace", 14)
 
-        # Estado
+        # State
         self.running = True
         self.show_panel = True
         self.theme = {"bg": ( 13, 13, 13), "grid": ( 25, 40, 25), "cell": (  0,255,100)}
 
-        # Automata
-        self.matriz_regla = MatrizRegla()
+        # Automaton
+        self.rule_matrix = RuleMatrix()
         self.life = Life2DM(width, height)
         self.history = []
 
@@ -68,7 +68,7 @@ class SimulationScene:
 
         y = config.PAD
 
-        self.btn_ocultar_panel = Button(
+        self.btn_hide_panel = Button(
             (config.PANEL_W - config.PAD - 40, y, 40, 20),
             "<<",
             toggle=False,
@@ -82,27 +82,27 @@ class SimulationScene:
         self.y_colnum = y
         y += 10
 
-        self.y_mat = y
+        self.y_matrix = y
 
         MAT_X0 = config.PAD + 16
 
-        self.mat_rects = self.matriz_regla.build_rects(MAT_X0, y)
+        self.matrix_rects = self.rule_matrix.build_rects(MAT_X0, y)
 
-        y += self.matriz_regla.total_h + config.PAD + 4
+        y += self.rule_matrix.total_h + config.PAD + 4
 
         self.y_sep1 = y - 4
 
-        self.y_kern_hdr = y
+        self.y_kernel_hdr = y
         y += 14
 
         KERN_X = MAT_X0
 
         self.kernel = Kernel3x3(KERN_X, y)
 
-        self.x_kern_info = KERN_X + self.kernel.total_w + 16
-        self.y_kern_info = y
+        self.x_kernel_info = KERN_X + self.kernel.total_w + 16
+        self.y_kernel_info = y
 
-        print("SimulationScene cargado PID =", os.getpid())
+        print("SimulationScene loaded PID =", os.getpid())
 
         # =========================================================
         # HELPERS
@@ -125,7 +125,7 @@ class SimulationScene:
         # RULES
         # =========================================================
 
-        self.btn_agregar_kernel = btn_panel(
+        self.btn_add_kernel = btn_panel(
             "Add kernel",
             2,
             y
@@ -133,7 +133,7 @@ class SimulationScene:
 
         y += BH + BGAP
 
-        self.btn_regla_aleat = btn_panel(
+        self.btn_random_rule = btn_panel(
             "Random rule",
             2,
             y
@@ -141,7 +141,7 @@ class SimulationScene:
 
         y += BH + BGAP
 
-        self.btn_limpiar_reg = btn_panel(
+        self.btn_clear_rule = btn_panel(
             "Clear rule",
             2,
             y
@@ -150,13 +150,13 @@ class SimulationScene:
         y += BH + BGAP + 4
 
         # Density slider
-        self.y_den_rules_lbl = y
-        self.x_den_rules_lbl = config.PAD + 2 * (BW + BGAP)
+        self.y_rule_density_lbl = y
+        self.x_rule_density_lbl = config.PAD + 2 * (BW + BGAP)
 
         y += 13
 
-        self.slider_den_rules = Slider(
-            (self.x_den_rules_lbl , y,  int(BW*1.4), 12),
+        self.slider_rule_density = Slider(
+            (self.x_rule_density_lbl , y,  int(BW*1.4), 12),
             value=0.5
         )
 
@@ -190,13 +190,13 @@ class SimulationScene:
 
         y += 25
 
-        self.btn_conf_aleat = btn_panel(
+        self.btn_random_config = btn_panel(
             "Random config",
             0,
             y
         )
 
-        self.btn_limpiar_vis = btn_panel(
+        self.btn_clear_view = btn_panel(
             "Clear view",
             1,
             y
@@ -205,11 +205,11 @@ class SimulationScene:
         y += BH + BGAP + 4
 
         # Density slider
-        self.y_den_lbl = y
+        self.y_density_lbl = y
 
         y += 13
 
-        self.slider_den = Slider(
+        self.slider_density = Slider(
             (config.PAD, y, config.PANEL_W - 65, 12),
             value=0.5
         )
@@ -225,7 +225,7 @@ class SimulationScene:
 
         y += 25
 
-        self.btn_evolucion = btn_panel(
+        self.btn_evolution = btn_panel(
             "Start",
             0,
             y,
@@ -233,7 +233,7 @@ class SimulationScene:
             bg=(45, 120, 60)
         )
 
-        self.btn_evol_paso = btn_panel(
+        self.btn_step = btn_panel(
             "Step",
             1,
             y
@@ -271,8 +271,8 @@ class SimulationScene:
 
         y += 40
 
-        # Temas
-        self.y_tema_lbl = y
+        # Themes
+        self.y_theme_lbl = y
 
         y += 13
 
@@ -291,20 +291,20 @@ class SimulationScene:
         self.y_info = y
 
         self._action_btns = [
-            self.btn_conf_aleat,
-            self.btn_regla_aleat,
+            self.btn_random_config,
+            self.btn_random_rule,
             self.btn_presets,
             self.btn_save_preset,
-            self.btn_evol_paso,
+            self.btn_step,
             self.btn_pause,
             self.btn_save,
             self.btn_load,
             self.btn_view_3d,
-            self.btn_limpiar_reg,
-            self.btn_evolucion,
-            self.btn_limpiar_vis,
-            self.btn_agregar_kernel,
-            self.btn_ocultar_panel
+            self.btn_clear_rule,
+            self.btn_evolution,
+            self.btn_clear_view,
+            self.btn_add_kernel,
+            self.btn_hide_panel
         ]
 
         self._all_btns = self._action_btns
@@ -333,7 +333,7 @@ class SimulationScene:
                 self.preset_w,
                 self.preset_h,
             ),
-            self.matriz_regla.to_rule_array()
+            self.rule_matrix.to_rule_array()
         )
 
         self.confirm_popup = ConfirmOverwritePopup(
@@ -365,7 +365,7 @@ class SimulationScene:
         )
 
 
-        # Camara
+        # Camera
         self.scroll_x = 0
         self.scroll_y = 0
 
@@ -417,20 +417,20 @@ class SimulationScene:
                         config.CELL_PX = int(config.CELL_PX)
 
 
-            # Inicio drag
+            # Drag start
             if ev.type == pygame.MOUSEBUTTONDOWN:
 
                 if ev.button == 3:
                     self.dragging_right = True
                     self.last_mouse_pos = pygame.mouse.get_pos()
 
-            # Fin drag
+            # Drag end
             if ev.type == pygame.MOUSEBUTTONUP:
 
                 if ev.button == 3:
                     self.dragging_right = False
 
-            # Movimiento camara
+            # Camera movement
             if ev.type == pygame.MOUSEMOTION and self.dragging_right:
 
                 mx, my = pygame.mouse.get_pos()
@@ -443,7 +443,7 @@ class SimulationScene:
 
                 self.last_mouse_pos = (mx, my)
 
-            # Pintar celdas
+            # Paint cells
             if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
 
                 self._paint_cell(ev.pos)
@@ -453,17 +453,17 @@ class SimulationScene:
                 self._paint_cell(ev.pos)
 
             # Slider
-            self.slider_den.handle_event(ev)
-            self.slider_den_rules.handle_event(ev)
+            self.slider_density.handle_event(ev)
+            self.slider_rule_density.handle_event(ev)
 
-            # Botones
+            # Buttons
             for b in self._all_btns:
 
                 if b.handle_event(ev):
 
                     self._on_btn(b)
 
-            # Selectores de color
+            # Color selectors
             for s in self.bg_color_selectors:
                 s.handle_event(ev)
 
@@ -472,10 +472,10 @@ class SimulationScene:
 
             if preset is not None:
 
-                self.matriz_regla.set_from_rule_array(preset["rule"])
+                self.rule_matrix.set_from_rule_array(preset["rule"])
 
                 self.life.sync_rule_from_matrix(
-                    self.matriz_regla.data
+                    self.rule_matrix.data
                 )
 
             saved_state = self.load_state_popup.handle_event(ev)
@@ -485,7 +485,7 @@ class SimulationScene:
                 self.life.rule = saved_state["rule"]
                 self.life.gen = saved_state["generation"]
 
-                self.matriz_regla.set_from_rule_array(
+                self.rule_matrix.set_from_rule_array(
                     saved_state["rule"]
                 )
 
@@ -542,18 +542,18 @@ class SimulationScene:
 
             
 
-            # Matriz regla
+            # Rule matrix
             if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
 
-                res = self.matriz_regla.handle_click(
+                res = self.rule_matrix.handle_click(
                     ev.pos,
-                    self.mat_rects
+                    self.matrix_rects
                 )
 
                 if res is not None:
 
                     self.life.sync_rule_from_matrix(
-                        self.matriz_regla.data
+                        self.rule_matrix.data
                     )
 
                     self.kernel.set_kernel_mask(res)
@@ -567,7 +567,7 @@ class SimulationScene:
         if not self.life.history:
             return
 
-        print(f"[3D] Lanzando proceso separado - PID principal = {os.getpid()}")
+        print(f"[3D] Launching separate process - main PID = {os.getpid()}")
 
         from multiprocessing import Process
 
@@ -577,7 +577,7 @@ class SimulationScene:
             daemon=True
         )
         p.start()
-        print(f"[3D] Proceso lanzado con PID = {p.pid}")
+        print(f"[3D] Process launched with PID = {p.pid}")
        
 
     def _paint_cell(self, pos):
@@ -617,42 +617,42 @@ class SimulationScene:
 
     def _on_btn(self, b):
 
-        d = self.slider_den.value
-        dr = self.slider_den_rules.value
+        d = self.slider_density.value
+        dr = self.slider_rule_density.value
 
-        if b is self.btn_conf_aleat:
+        if b is self.btn_random_config:
 
             self.life.random_fill(d)
 
-        elif b is self.btn_regla_aleat:
+        elif b is self.btn_random_rule:
 
-            self.matriz_regla.randomize(dr)
+            self.rule_matrix.randomize(dr)
 
             self.life.sync_rule_from_matrix(
-                self.matriz_regla.data
+                self.rule_matrix.data
             )
 
-        elif b is self.btn_evol_paso:
+        elif b is self.btn_step:
             self.btn_pause.active = True
-            self.btn_evolucion.active = False
+            self.btn_evolution.active = False
             self.btn_pause.label = "Resume"
             self.life.running = False
             self.life.step()
 
-        elif b is self.btn_limpiar_reg:
+        elif b is self.btn_clear_rule:
 
-            self.matriz_regla.clear()
+            self.rule_matrix.clear()
 
             self.life.rule[:] = 0
 
             self.kernel.clear()
 
-        elif b is self.btn_evolucion:
+        elif b is self.btn_evolution:
             self.life.running = b.active
             if b.active:
-                self.btn_evolucion.label = "Stop"
+                self.btn_evolution.label = "Stop"
             else:
-                self.btn_evolucion.label = "Start"
+                self.btn_evolution.label = "Start"
                 self.btn_pause.active = False
                 self.btn_pause.label = "Pause"
                 self.life.reset()
@@ -664,18 +664,18 @@ class SimulationScene:
             else:
                 self.btn_pause.label = "Pause"
 
-        elif b is self.btn_limpiar_vis:
-            self.btn_evolucion.active = False
-            self.btn_evolucion.label = "Start"
+        elif b is self.btn_clear_view:
+            self.btn_evolution.active = False
+            self.btn_evolution.label = "Start"
             self.btn_pause.active = False
             self.btn_pause.label = "Pause"
 
             self.life.full_reset()
 
-        elif b is self.btn_agregar_kernel:
+        elif b is self.btn_add_kernel:
 
             rule = self.kernel.apply_to_matrix(
-                self.matriz_regla
+                self.rule_matrix
             )
 
             self.life.rule = rule
@@ -686,12 +686,12 @@ class SimulationScene:
 
         elif b is self.btn_save_preset:
             self.show_popup = True
-            self.save_preset_popup.rule = self.matriz_regla.to_rule_array()
+            self.save_preset_popup.rule = self.rule_matrix.to_rule_array()
             self.save_preset_popup.open()
 
         elif b is self.btn_save:
             self.show_popup = True
-            self.save_state_popup.open(self.life.state, self.matriz_regla.to_rule_array(), self.life.gen)
+            self.save_state_popup.open(self.life.state, self.rule_matrix.to_rule_array(), self.life.gen)
 
         elif b is self.btn_load:
             self.show_popup = True
@@ -701,23 +701,23 @@ class SimulationScene:
             if self.life.history:
                 self.launch_3d_view()
 
-        elif b is self.btn_ocultar_panel:
+        elif b is self.btn_hide_panel:
 
             self.show_panel = not self.show_panel
 
             if self.show_panel:
 
-                self.btn_ocultar_panel.label = "<<"
+                self.btn_hide_panel.label = "<<"
 
-                self.btn_ocultar_panel.rect.x = (
+                self.btn_hide_panel.rect.x = (
                     config.PANEL_W - config.PAD - 40
                 )
 
             else:
 
-                self.btn_ocultar_panel.label = ">>"
+                self.btn_hide_panel.label = ">>"
 
-                self.btn_ocultar_panel.rect.x = config.PAD
+                self.btn_hide_panel.rect.x = config.PAD
         
 
     def draw(self):
@@ -738,7 +738,7 @@ class SimulationScene:
 
             self._draw_panel()
 
-            self.btn_ocultar_panel.draw(
+            self.btn_hide_panel.draw(
                 self.panel_surf,
                 self.fm
             )
@@ -755,7 +755,7 @@ class SimulationScene:
 
         else:
 
-            self.btn_ocultar_panel.draw(
+            self.btn_hide_panel.draw(
                 self.screen,
                 self.fm
             )
@@ -786,9 +786,9 @@ class SimulationScene:
             config.P_FG
         )
 
-        self.matriz_regla.draw(
+        self.rule_matrix.draw(
             surf,
-            self.mat_rects,
+            self.matrix_rects,
             self.fxs
         )
 
@@ -797,41 +797,41 @@ class SimulationScene:
             self.fxs
         )
 
-        # Info del kernel a su derecha 
-        xi = self.x_kern_info 
-        yi = self.y_kern_info 
-        lineas = [ 
-            "Clic en cada celda del", 
-            "kernel para activarla.", 
-            "La regla se recalcula:", 
-            "rule[i]=1 si todos los", 
-            "bits del kernel activos", 
-            "estan en el indice i.", 
+        # Kernel info to the right
+        xi = self.x_kernel_info 
+        yi = self.y_kernel_info 
+        lines = [ 
+            "Click on each cell of the", 
+            "kernel to activate it.", 
+            "The rule is recalculated:", 
+            "rule[i]=1 if all", 
+            "active kernel bits", 
+            "are in index i.", 
             ] 
-        for ln in lineas: 
+        for ln in lines: 
             config.draw_text(surf, self.fn, ln, (xi, yi), config.P_LABEL) 
             yi += 11 
             yi += 4 
-        config.draw_text(surf, self.fn, "Mascara:", (xi, yi), config.P_LABEL) 
+        config.draw_text(surf, self.fn, "Mask:", (xi, yi), config.P_LABEL) 
         config.draw_text(surf, self.fb, f"{self.kernel.mask:09b} ({self.kernel.mask})", (xi + 65, yi), config.P_VALUE)
 
         # =====================================================
         # RULES SECTION
         # =====================================================
 
-        self.btn_agregar_kernel.draw(surf, self.fm)
-        self.btn_regla_aleat.draw(surf, self.fm)
-        self.btn_limpiar_reg.draw(surf, self.fm)
+        self.btn_add_kernel.draw(surf, self.fm)
+        self.btn_random_rule.draw(surf, self.fm)
+        self.btn_clear_rule.draw(surf, self.fm)
 
         config.draw_text(
             surf,
             self.fxs,
             "Density Rules",
-            (self.x_den_rules_lbl, self.y_den_rules_lbl),
+            (self.x_rule_density_lbl, self.y_rule_density_lbl),
             config.P_LABEL
         )
 
-        self.slider_den_rules.draw(surf, self.fxs)
+        self.slider_rule_density.draw(surf, self.fxs)
 
         self.btn_presets.draw(surf, self.fm)
         self.btn_save_preset.draw(surf, self.fm)
@@ -855,18 +855,18 @@ class SimulationScene:
             (config.PANEL_W - config.PAD, self.y_population_hdr + 16)
         )
 
-        self.btn_conf_aleat.draw(surf, self.fm)
-        self.btn_limpiar_vis.draw(surf, self.fm)
+        self.btn_random_config.draw(surf, self.fm)
+        self.btn_clear_view.draw(surf, self.fm)
 
         config.draw_text(
             surf,
             self.fxs,
             "Density Population",
-            (config.PAD, self.y_den_lbl),
+            (config.PAD, self.y_density_lbl),
             config.P_LABEL
         )
 
-        self.slider_den.draw(surf, self.fxs)
+        self.slider_density.draw(surf, self.fxs)
 
         # =====================================================
         # EVOLUTION SECTION
@@ -887,8 +887,8 @@ class SimulationScene:
             (config.PANEL_W - config.PAD, self.y_evolution_hdr + 16)
         )
 
-        self.btn_evolucion.draw(surf, self.fm)
-        self.btn_evol_paso.draw(surf, self.fm)
+        self.btn_evolution.draw(surf, self.fm)
+        self.btn_step.draw(surf, self.fm)
 
         self.btn_pause.draw(surf, self.fm)
 
@@ -910,7 +910,7 @@ class SimulationScene:
                 lc,
                 (
                     config.PAD + idx * ((config.PANEL_W - config.PAD) // 3),
-                    self.y_tema_lbl
+                    self.y_theme_lbl
                 ),
                 config.P_LABEL
             )

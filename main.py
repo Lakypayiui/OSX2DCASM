@@ -10,7 +10,7 @@ if __name__ == "__main__":
     freeze_support()
     mp.set_start_method("spawn", force=True)
     
-    print(f"=== PROCESO PRINCIPAL INICIADO PID = {os.getpid()} ===")
+    print(f"=== MAIN PROCESS STARTED PID = {os.getpid()} ===")
     
 
     

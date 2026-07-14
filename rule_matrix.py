@@ -3,13 +3,13 @@ import random
 import time
 import numpy as np
 
-#  MATRIZ DE REGLA  16 x 32
- 
-class MatrizRegla:
-    """512 bits de la regla organizados en 16 filas x 32 columnas."""
-    BW = PANEL_W * 0.9 // 32  # ancho de cada boton
+#  RULE MATRIX 16 x 32
+
+class RuleMatrix:
+    """512 bits of the rule organized in 16 rows x 32 columns."""
+    BW = PANEL_W * 0.9 // 32  # width of each button
     BH = BW
-    BM = int(BW * 0.1)             # margen entre botones
+    BM = int(BW * 0.1)            # margin between buttons
 
     def __init__(self):
         self.active = True
@@ -33,7 +33,7 @@ class MatrizRegla:
                 self.data[i][j] = 1 if rng.random() < p else 0
 
     def set_from_rule_array(self, rule_np):
-        """Carga desde un ndarray[512]."""
+        """Load from ndarray[512]."""
         for idx in range(512):
             r, c = divmod(idx, 32)
             self.data[r][c] = int(rule_np[idx])
@@ -47,9 +47,9 @@ class MatrizRegla:
                     rule[idx] = self.data[i][j]
         return rule
 
-     
+    
     def build_rects(self, x0, y0):
-        """Genera los Rect para hit-testing."""
+        """Generates Rects for hit-testing."""
         return [
             [pygame.Rect(x0 + j * (self.BW + self.BM),
                          y0 + i * (self.BH + self.BM),

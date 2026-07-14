@@ -73,26 +73,26 @@ class PresetPopup(Popup):
             self.buttons.append((load_btn, preset))
             self.delete_buttons.append((delete_btn, preset))
 
-    def load_preset(self, name, matriz_regla, life):
+    def load_preset(self, name, rule_matrix, life):
 
         with open(PRESET_PATH, "r", encoding="utf-8") as f:
             data = json.load(f)
 
         preset = data[name]
 
-        # Restaurar regla numpy
+        # Restore numpy rule
         life.rule = np.array(
             preset["rule"],
             dtype=np.uint8
         )
 
-        # Reconstruir matriz 16x32
+        # Rebuild 16x32 matrix
         for idx, value in enumerate(life.rule):
 
             row = idx // 32
             col = idx % 32
 
-            matriz_regla.data[row][col] = int(value)
+            rule_matrix.data[row][col] = int(value)
 
     def handle_event(self, ev):
 

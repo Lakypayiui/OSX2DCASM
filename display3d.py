@@ -45,7 +45,7 @@ class Display3D:
         self.zoom_min  = 5.0
 
         print(f"[Platform] {PLATFORM} {'(Apple Silicon)' if IS_SILICON else ''}")
-        print(f"[Sim] Generaciones: {self.generations}, Células vivas: {self.N}")
+        print(f"[Sim] Generations: {self.generations}, Living cells: {self.N}")
     
     def perspective(self, fov_deg, aspect, near, far):
         f = 1.0 / np.tan(np.radians(fov_deg) / 2)
@@ -70,11 +70,11 @@ class Display3D:
         return np.array([[c,0,s,0],[0,1,0,0],[-s,0,c,0],[0,0,0,1]], dtype=np.float32)
 
     def compute_mvp(self, cam_x, cam_y, cam_z, yaw, pitch):
-        """Cámara libre corregida y más estable"""
+        """Corrected and more stable free camera"""
         
         proj = self.perspective(45, self.width / self.height, 0.1, 2000.0)
         
-        # Vectores de dirección
+        # Direction vectors
         cy = np.cos(np.radians(yaw))
         sy = np.sin(np.radians(yaw))
         cp = np.cos(np.radians(pitch))
@@ -87,7 +87,7 @@ class Display3D:
         
         pos = np.array([cam_x, cam_y, cam_z], dtype=np.float32)
         
-        # View Matrix (Construcción correcta por filas para Numpy)
+        # View Matrix (correct row-major construction for NumPy)
         view = np.eye(4, dtype=np.float32)
         view[0, 0:3] = right
         view[1, 0:3] = up
@@ -95,12 +95,12 @@ class Display3D:
         
         view[0, 3] = -np.dot(right, pos)
         view[1, 3] = -np.dot(up, pos)
-        # IMPORTANTE: Como la base Z es -forward, el producto punto es positivo
+        # IMPORTANT: Since Z basis is -forward, the dot product is positive
         view[2, 3] = np.dot(forward, pos)
         
-        # Modelo (Identidad)
-        # Las células ya están desplazadas en el mundo (in.offset).
-        # Trasladarlas de nuevo por (CX, CY, CZ) las sacaba del rango visual de la cámara.
+        # Model (Identity)
+        # Cells are already positioned in the world (in.offset).
+        # Translating them again by (CX, CY, CZ) would push them out of the camera's visual range.
         model = np.eye(4, dtype=np.float32)
         
         return proj @ view @ model
@@ -123,7 +123,7 @@ class Display3D:
             else:
                 continue
         if len(out) != 6:
-            print("Warning: frustum incompleto:", len(out))
+            print("Warning: incomplete frustum:", len(planes))
         return out
 
     def aabb_in_frustum_minmax(self, planes, min_p, max_p):
@@ -131,7 +131,7 @@ class Display3D:
             n = p[:3]
             d = p[3]
 
-            # seleccionar vértice extremo directamente
+            # select extreme vertex directly
             p_vertex = np.where(n > 0, max_p, min_p)
 
             if np.dot(n, p_vertex) + d < 0:
@@ -140,27 +140,27 @@ class Display3D:
         return True
 
     def get_chunks(self):
-        # Calcular las coordenadas de los chunks de forma vectorizada
+        # Calculate chunk coordinates in vectorized form
         all_points = np.asarray(self.all_points)
         coords = (all_points // self.chunk_size).astype(np.int32)
 
-        # Ordenar los puntos según sus coordenadas de chunk (lexicográficamente)
+        # Sort points by their chunk coordinates (lexicographically)
         sort_idx = np.lexsort((coords[:, 2], coords[:, 1], coords[:, 0]))
         sorted_points = all_points[sort_idx]
         sorted_coords = coords[sort_idx]
 
-        # Encontrar los límites donde cambia un chunk de otro
+        # Find boundaries where one chunk changes to another
         diffs = np.any(np.diff(sorted_coords, axis=0) != 0, axis=1)
-        # Obtenemos los índices de inicio de cada bloque
+        # Get the start indices of each block
         boundaries = np.concatenate(([0], np.where(diffs)[0] + 1, [len(sorted_points)]))
 
         chunk_data = {}
         chunk_bounds = {}
 
-        #Extraer los datos usando 'reduceat' para los mínimos y máximos
+        # Extract data using 'reduceat' for mins and maxes
         unique_keys = sorted_coords[boundaries[:-1]]
         
-        # Calculamos min y max de forma segmentada
+        # Calculate min and max in segmented form
         starts = boundaries[:-1]
         mins = np.minimum.reduceat(sorted_points, starts)
         maxs = np.maximum.reduceat(sorted_points, starts)
@@ -197,7 +197,7 @@ class Display3D:
             [-s,-s,-s],[ s,-s,-s],[ s,-s, s],  [-s,-s,-s],[ s,-s, s],[-s,-s, s],
         ], dtype=np.float32)
 
-        # normales por cara (6 vértices por cara)
+        # normals per face (6 vertices per face)
         normals = np.array([
             [0,0,1]]*6 +
             [[0,0,-1]]*6 +
@@ -230,7 +230,7 @@ class Display3D:
         import Metal
         import objc
         from Foundation import NSAutoreleasePool
-        # Distancia de renderizado
+        # Render distance
         visible_generations = 100
         MSL_SHADER = """
         #include <metal_stdlib>
@@ -262,12 +262,12 @@ class Display3D:
         """
 
         if not glfw.init():
-            raise RuntimeError("glfw.init() falló")
+            raise RuntimeError("glfw.init() failed")
         glfw.window_hint(glfw.CLIENT_API, glfw.NO_API)
         window = glfw.create_window(self.width, self.height, f"Game of Life 3D [Metal]", None, None)
         if not window:
             glfw.terminate()
-            raise RuntimeError("No ventana")
+            raise RuntimeError("No window")
 
         pool = NSAutoreleasePool.alloc().init()
         devices = Metal.MTLCopyAllDevices()
@@ -320,7 +320,7 @@ class Display3D:
         self.pipeline = pipeline
         self.depth_state = depth_state
 
-        # Geometría
+        # Geometry
         faces, _, face_flags, edges, edge_flags = self.make_cube_geometry()
         def interleave(verts, flags):
             return np.column_stack([verts, flags]).astype(np.float32)
@@ -340,7 +340,7 @@ class Display3D:
         n_fv = len(face_data)
         n_ev = len(edge_data)
 
-        # Cámara inicial más segura
+        # Safer initial camera
         cam = {"x": self.CX, "y": self.CY + 10, "z": self.CZ + 80, "yaw": -90, "pitch": -20, "speed": 1.2}
         S = {"w": self.width, "h": self.height, "dirty": True}
         self.last_generation = getattr(self, 'generation', 0)
@@ -355,7 +355,7 @@ class Display3D:
             # .as_buffer(size) nos da acceso directo a esa memoria en C para sobreescribirla.
             metal_buf.contents().as_buffer(len(data_bytes))[:] = data_bytes
 
-        # Asegúrate de definir esto ANTES del while si no lo has hecho
+        # Make sure to define this BEFORE the while if you haven't
         # visible_generations = 50 
 
         while not glfw.window_should_close(window):
@@ -406,7 +406,7 @@ class Display3D:
             if instance_count > 0:
                 update_metal_buffer(offsets_buf, visible_points.astype(np.float32))
 
-            # --- ACTUALIZACIÓN DE UNIFORMS (Matriz) ---
+            # --- UNIFORM UPDATE (Matrix) ---
             uniform_buf = uniform_buffers[current_uniform_idx]
             update_metal_buffer(uniform_buf, mvp.T.astype(np.float32))
             current_uniform_idx = (current_uniform_idx + 1) % 3
@@ -429,7 +429,7 @@ class Display3D:
             color_att = rpd.colorAttachments().objectAtIndexedSubscript_(0)
             color_att.setTexture_(drawable.texture())
             color_att.setLoadAction_(Metal.MTLLoadActionClear)
-            # Un azul oscuro para notar que Metal sí está limpiando el frame
+            # Dark blue to confirm Metal is clearing the frame
             color_att.setClearColor_(Metal.MTLClearColorMake(0.1, 0.1, 0.2, 1.0)) 
             color_att.setStoreAction_(Metal.MTLStoreActionStore)
 
@@ -503,7 +503,7 @@ class Display3D:
         out vec3 v_normal;
 
         void main() {
-            // posición del centro del cubo en clip space
+            // center of the cube in clip space
             vec4 center = mvp * vec4(in_offset, 1.0);
 
             if (abs(center.x) > center.w ||
@@ -513,7 +513,7 @@ class Display3D:
                 return;
             }
 
-            // posición final del vértice
+            // final vertex position
             gl_Position = mvp * vec4(in_vert + in_offset, 1.0);
 
             v_edge = in_edge;
@@ -527,7 +527,7 @@ class Display3D:
         in vec3 v_normal;
         out vec4  fragColor;
         void main() {
-            vec3 light_dir = normalize(vec3(0.0, 0.0, 1.0)); // dirección de luz
+            vec3 light_dir = normalize(vec3(0.0, 0.0, 1.0)); // light direction
             float diff = max(dot(normalize(v_normal), light_dir), 0.2);
 
             vec3 baseColor = (v_edge > 0.5)
@@ -568,7 +568,7 @@ class Display3D:
                                             pygame.GL_CONTEXT_PROFILE_CORE)
             pygame.display.gl_set_attribute(pygame.GL_CONTEXT_FORWARD_COMPATIBLE_FLAG, True)
             pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
-            pygame.display.set_caption("Renderizado 3D - OpenGL")
+            pygame.display.set_caption("3D Rendering - OpenGL")
 
             print(f"[OpenGL] {glGetString(GL_VERSION).decode()}")
             glViewport(0, 0, *display)
@@ -617,7 +617,7 @@ class Display3D:
                 glBufferData(GL_ARRAY_BUFFER, pts.nbytes, pts, GL_STATIC_DRAW)
                 chunk_vbos[key] = (vbo, len(pts))
 
-            print(f"[Chunks] Total: {len(chunk_data)} | Ejemplo: {list(chunk_data.keys())[:5]}")
+            print(f"[Chunks] Total: {len(chunk_data)} | Example: {list(chunk_data.keys())[:5]}")
 
             glEnable(GL_DEPTH_TEST)
             glEnable(GL_CULL_FACE)
@@ -703,7 +703,8 @@ class Display3D:
                     if self.aabb_in_frustum_minmax(planes, min_p, max_p):
                         visible_chunks.append(key)
                     
-                #print(f"Chunks visibles: {len(visible_chunks)} / {len(chunk_bounds)}")
+                # Visible chunks:
+                #print(f"Visible chunks: {len(visible_chunks)} / {len(chunk_bounds)}")
 
                 glUniformMatrix4fv(mvp_loc, 1, GL_FALSE, mvp.T)
 

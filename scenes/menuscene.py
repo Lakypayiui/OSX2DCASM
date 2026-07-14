@@ -14,7 +14,7 @@ class MenuScene:
         self.screen = screen
         self.clock = pygame.time.Clock()
 
-        # Fuentes
+        # Fonts
         self.ftitle = pygame.font.SysFont("monospace", 42, bold=True)
         self.fsub   = pygame.font.SysFont("monospace", 18)
         self.ftext  = pygame.font.SysFont("monospace", 16)
@@ -52,10 +52,10 @@ class MenuScene:
             bg_on=(80, 80, 100)
         )
 
-        # Popup dummy
+        # Dummy popup
         self.show_settings = False
 
-        # Fondo animado
+        # Animated background
         self.bg_cells = []
 
         for _ in range(140):
@@ -67,7 +67,7 @@ class MenuScene:
                 "alpha": random.randint(40, 120)
             })
 
-        # Resultado
+        # Result
         self.start_requested = False
         self.grid_width = 100
         self.grid_height = 100
@@ -134,7 +134,7 @@ class MenuScene:
 
     def _draw_background(self):
 
-        # Grid tenue
+        # Subtle grid
         grid_color = (18, 18, 26)
 
         spacing = 40
@@ -155,7 +155,7 @@ class MenuScene:
                 (config.WIN_W, y)
             )
 
-        # Celdas animadas
+        # Animated cells
         for c in self.bg_cells:
 
             s = pygame.Surface((c["size"], c["size"]), pygame.SRCALPHA)
@@ -173,7 +173,7 @@ class MenuScene:
             420
         )
 
-        # Fondo panel
+        # Panel background
         pygame.draw.rect(
             self.screen,
             (18, 18, 26),
@@ -189,7 +189,7 @@ class MenuScene:
             border_radius=12
         )
 
-        # Titulo
+        # Title
         title = self.ftitle.render(
             "ACOSXM Studio",
             True,
@@ -204,7 +204,7 @@ class MenuScene:
             )
         )
 
-        # Subtitulo
+        # Subtitle
         sub = self.fsub.render(
             "Cellular Automata Evolution Sandbox",
             True,
@@ -239,7 +239,7 @@ class MenuScene:
         self.input_width.draw(self.screen, self.ftext)
         self.input_height.draw(self.screen, self.ftext)
 
-        # Botones
+        # Buttons
         self.btn_create.draw(self.screen, self.ftext)
         self.btn_settings.draw(self.screen, self.fsmall)
 

@@ -1,12 +1,12 @@
 from config import *
-#  KERNEL 3x3 (vecindad de Moore editable)
+#  3x3 KERNEL (editable Moore neighborhood)
  
 class Kernel3x3:
     """
-    Representa los 9 bits del kernel (vecindad de Moore).
+    Represents the 9 bits of the kernel (Moore neighborhood).
     """
 
-    CELL_S = 44   # Antes 22, ahora el doble
+    CELL_S = 44   # Was 22, now doubled
 
     LABELS = [
         "NW", "N",  "NE",
@@ -73,20 +73,19 @@ class Kernel3x3:
         for i in range(9):
             self.bits[i] = (num >> i) & 1
 
-    def apply_to_matrix(self, matriz_regla):
-
+    def apply_to_matrix(self, rule_matrix):
         m = self.mask
 
         for idx in range(512):
 
             if idx == int(m):
-                matriz_regla.data[idx // 32][idx % 32] = 1
+                rule_matrix.data[idx // 32][idx % 32] = 1
 
-        return matriz_regla.to_rule_array()
+        return rule_matrix.to_rule_array()
 
     def draw(self, surf, font):
 
-        # Escalar labels al doble
+        # Scale labels to double
         big_font = pygame.font.SysFont(
             "monospace",
             font.get_height(),

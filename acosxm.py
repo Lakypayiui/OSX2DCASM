@@ -9,7 +9,7 @@ class ACOSXM:
 
     def __init__(self):
         pygame.init()
-        pygame.display.set_caption("ACOSXM - Automata Celular Vecindad de Moore")
+        pygame.display.set_caption("ACOSXM - Moore Neighborhood Cellular Automaton")
         self.screen = pygame.display.set_mode((config.WIN_W, config.WIN_H))
         self.clock  = pygame.time.Clock()
 
