@@ -1,5 +1,5 @@
 import pygame
-import config
+from core import config
 from widgets.button import Button
 
 class Popup:

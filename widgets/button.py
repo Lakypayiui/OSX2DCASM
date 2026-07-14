@@ -1,4 +1,4 @@
-from config import *
+from core.config import *
 
 class Button:
     def __init__(self, rect, label, toggle=False,

@@ -2,12 +2,12 @@ import sys
 import pygame
 from multiprocessing import Process, set_start_method
 
-import config
+from core import config
 
-from life2dm import Life2DM
-from rule_matrix import RuleMatrix
-from kernel import Kernel3x3
-from display3d import Display3D, PLATFORM
+from core.life2dm import Life2DM
+from core.rule_matrix import RuleMatrix
+from core.kernel import Kernel3x3
+from core.display3d import Display3D, PLATFORM
 
 from widgets.button import Button
 from widgets.savesimulationpopup import SaveSimulationPopup

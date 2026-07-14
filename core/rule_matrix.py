@@ -1,4 +1,4 @@
-from config import *
+from core.config import *
 import random
 import time
 import numpy as np

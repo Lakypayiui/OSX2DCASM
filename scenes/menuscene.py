@@ -2,7 +2,7 @@ import sys
 import random
 import pygame
 
-import config
+from core import config
 
 from widgets.button import Button
 from widgets.inputbox import InputBox

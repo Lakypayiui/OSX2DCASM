@@ -5,7 +5,7 @@ import os
 import sys
 import threading
 import numpy as np
-import config
+from core import config
 from widgets.button import Button
 from widgets.rgbselector import RGBSelector
 from widgets.slider import Slider

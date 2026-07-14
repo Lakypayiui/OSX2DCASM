@@ -1,5 +1,5 @@
 import time
-import config
+from core import config
 import pygame
 import numpy as np
 

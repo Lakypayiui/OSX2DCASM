@@ -2,7 +2,7 @@ import os
 import sys
 from multiprocessing import freeze_support, set_start_method
 import multiprocessing as mp
-from acosxm import ACOSXM
+from core.acosxm import ACOSXM
 if "main" in sys.modules or getattr(sys, 'frozen', False):
     os.environ.setdefault('MAIN_PID', str(os.getpid()))
 

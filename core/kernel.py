@@ -1,4 +1,4 @@
-from config import *
+from core.config import *
 #  3x3 KERNEL (editable Moore neighborhood)
  
 class Kernel3x3:

@@ -1,4 +1,4 @@
-from config import *
+from core.config import *
 
 class Slider:
     def __init__(self, rect, vmin=0.0, vmax=1.0, value=0.5):

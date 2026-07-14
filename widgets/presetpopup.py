@@ -1,7 +1,7 @@
 import json
 import numpy as np
 import pygame
-import config
+from core import config
 import os
 import sys
 
