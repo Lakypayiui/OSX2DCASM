@@ -3,8 +3,3 @@ from widgets.inputbox import InputBox
 from widgets.slider import Slider
 from widgets.popup import Popup
 from widgets.rgbselector import RGBSelector
-from widgets.presetpopup import PresetPopup
-from widgets.saverulepopup import SaveRulePopup
-from widgets.savesimulationpopup import SaveSimulationPopup
-from widgets.loadsimulationpopup import LoadSimulationPopup
-from widgets.confirmoverwritepopup import ConfirmOverwritePopup

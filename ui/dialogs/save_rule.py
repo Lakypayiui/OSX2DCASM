@@ -98,8 +98,6 @@ class SaveRulePopup(Popup):
         if not self.visible:
             return None
 
-        super().handle_event(ev)
-
         self.input_name.handle_event(ev)
 
         if self.btn_save.handle_event(ev):
@@ -110,7 +108,7 @@ class SaveRulePopup(Popup):
             if ev.key == pygame.K_RETURN:
                 return self.save_rule()
 
-        return None
+        return super().handle_event(ev)
     
     def draw(self, screen):
 

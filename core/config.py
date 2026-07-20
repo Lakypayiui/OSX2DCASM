@@ -1,19 +1,6 @@
 import numpy as np
 import pygame
 
-#  COLOR THEMES
-
-COLOR_THEMES = [
-    {"name": "Neon",    "bg": ( 13, 13, 13), "grid": ( 25, 40, 25), "cell": (  0,255,100)},
-    {"name": "Classic",  "bg": (245,245,245), "grid": (180,180,180), "cell": ( 20, 20, 20)},
-    {"name": "Cyan",    "bg": (  5, 10, 18), "grid": ( 10, 22, 36), "cell": (  0,210,255)},
-    {"name": "Fire",   "bg": ( 10,  0,  0), "grid": ( 28,  5,  0), "cell": (255,100,  0)},
-    {"name": "Matrix",  "bg": (  0,  0,  0), "grid": (  0, 28,  0), "cell": ( 50,255, 50)},
-    {"name": "Purple", "bg": ( 10,  0, 18), "grid": ( 22,  0, 40), "cell": (210, 60,255)},
-    {"name": "Sepia",   "bg": (245,230,200), "grid": (210,185,148), "cell": ( 90, 55, 25)},
-    {"name": "Ocean",   "bg": (  0, 16, 32), "grid": (  0, 34, 68), "cell": (  0,175,255)},
-]
-
 #  SCREEN AND AUTOMATON CONFIGURATION
 
 pygame.display.init()

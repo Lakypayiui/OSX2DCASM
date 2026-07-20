@@ -1,134 +1,81 @@
-from core.config import *
-#  3x3 KERNEL (editable Moore neighborhood)
- 
-class Kernel3x3:
+from core.rule_matrix import RuleMatrix
+import numpy as np
+
+
+class Kernel:
+    """Represents a 3x3 Moore neighborhood kernel.
+
+    The kernel stores the state of its nine cells as bits and provides
+    utility methods to manipulate the kernel and generate a rule array
+    compatible with the cellular automaton.
     """
-    Represents the 9 bits of the kernel (Moore neighborhood).
-    """
 
-    CELL_S = 44   # Was 22, now doubled
+    def __init__(self) -> None:
+        """Initializes an empty kernel."""
 
-    LABELS = [
-        "NW", "N",  "NE",
-        "W",  "C",  "E",
-        "SW", "S",  "SE"
-    ]
-
-    def __init__(self, x, y):
-
-        self.active = True
-
-        self.x = x
-        self.y = y
-
-        self.bits = [0] * 9
-
-        self.rects = [
-            pygame.Rect(
-                x + (i % 3) * self.CELL_S,
-                y + (i // 3) * self.CELL_S,
-                self.CELL_S - 4,
-                self.CELL_S - 4
-            )
-            for i in range(9)
-        ]
+        self.bits: list[int] = [0] * 9
 
     @property
-    def total_w(self):
-        return self.CELL_S * 3
+    def mask(self) -> int:
+        """Returns the kernel encoded as a 9-bit integer."""
 
-    @property
-    def total_h(self):
-        return self.CELL_S * 3
+        mask = 0
 
-    @property
-    def mask(self):
+        for index, bit in enumerate(self.bits):
+            mask |= bit << index
 
-        m = 0
+        return mask
 
-        for i, b in enumerate(self.bits):
-            m |= b << i
+    def toggle(self, index: int) -> None:
+        """Toggles the value of a kernel cell.
 
-        return m
+        Args:
+            index: Index of the kernel cell to toggle (0-8).
+        """
 
-    def handle_click(self, pos):
+        self.bits[index] ^= 1
 
-        if self.active:
+    def set_mask(self, mask: int) -> None:
+        """Loads the kernel from a 9-bit mask.
 
-            for i, r in enumerate(self.rects):
+        Args:
+            mask: Integer representation of the kernel.
 
-                if r.collidepoint(pos):
-                    self.bits[i] ^= 1
-                    return i
+        Raises:
+            ValueError: If ``mask`` is outside the valid range [0, 511].
+        """
 
-        return None
-
-    def set_kernel_mask(self, num):
-
-        if num < 0 or num > 0x1FF:
+        if not 0 <= mask <= 0x1FF:
             raise ValueError(
                 "Kernel mask must be a 9-bit integer (0-511)."
             )
 
-        for i in range(9):
-            self.bits[i] = (num >> i) & 1
+        for index in range(9):
+            self.bits[index] = (mask >> index) & 1
 
-    def apply_to_matrix(self, rule_matrix):
-        m = self.mask
+    def apply_to_matrix(
+        self,
+        rule_matrix: RuleMatrix,
+    ) -> np.ndarray:
+        """Applies the kernel to a rule matrix.
 
-        for idx in range(512):
+        The current kernel mask is used to activate the corresponding
+        entry in the 512-bit rule matrix.
 
-            if idx == int(m):
-                rule_matrix.data[idx // 32][idx % 32] = 1
+        Args:
+            rule_matrix: Rule matrix to modify.
+
+        Returns:
+            A NumPy array representing the updated rule.
+        """
+
+        mask = self.mask
+
+        rule_matrix.data[mask // 32][mask % 32] = 1
 
         return rule_matrix.to_rule_array()
 
-    def draw(self, surf, font):
+    def clear(self) -> None:
+        """Clears all kernel bits."""
 
-        # Scale labels to double
-        big_font = pygame.font.SysFont(
-            "monospace",
-            font.get_height(),
-            bold=True
-        )
-
-        for i, r in enumerate(self.rects):
-
-            v = self.bits[i]
-
-            bg = BTN_ON_BG if v else BTN_OFF_BG
-            fg = BTN_ON_FG if v else BTN_OFF_FG
-
-            pygame.draw.rect(
-                surf,
-                bg,
-                r,
-                border_radius=6
-            )
-
-            pygame.draw.rect(
-                surf,
-                P_BORDER,
-                r,
-                2,
-                border_radius=6
-            )
-
-            lbl = big_font.render(
-                self.LABELS[i],
-                True,
-                fg
-            )
-
-            surf.blit(
-                lbl,
-                (
-                    r.centerx - lbl.get_width() // 2,
-                    r.centery - lbl.get_height() // 2
-                )
-            )
-
-    def clear(self):
-
-        for i in range(9):
-            self.bits[i] = 0
+        self.bits = [0] * 9

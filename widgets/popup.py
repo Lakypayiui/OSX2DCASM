@@ -44,13 +44,13 @@ class Popup:
     def handle_event(self, ev):
 
         if not self.visible:
-            return False
+            return None
 
         if self.btn_close.handle_event(ev):
             self.close()
-            return True
+            return "closed"
 
-        return False
+        return None
 
     def draw(self, screen):
 

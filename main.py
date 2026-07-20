@@ -12,6 +12,4 @@ if __name__ == "__main__":
     
     print(f"=== MAIN PROCESS STARTED PID = {os.getpid()} ===")
     
-
-    
     ACOSXM().run()

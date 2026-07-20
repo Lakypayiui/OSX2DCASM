@@ -153,8 +153,6 @@ class LoadSimulationPopup(Popup):
         if not self.visible:
             return None
 
-        super().handle_event(ev)
-
         if ev.type == pygame.KEYDOWN:
 
             if ev.key == pygame.K_ESCAPE:
@@ -194,7 +192,7 @@ class LoadSimulationPopup(Popup):
                 )
             )
 
-        return None
+        return super().handle_event(ev)
 
     def draw(self, screen):
 

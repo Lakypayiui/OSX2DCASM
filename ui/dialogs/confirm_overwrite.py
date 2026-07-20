@@ -36,9 +36,7 @@ class ConfirmOverwritePopup(Popup):
             "Cancel"
         )
 
-    def open(self, rule_name):
-
-        self.rule_name = rule_name
+    def open(self):
 
         self.result = None
 
@@ -48,15 +46,10 @@ class ConfirmOverwritePopup(Popup):
             self.title = "Rule already exists"
         else:
             self.title = "Title already exists"
-        print(self.title)
-        print(self.rule_name)
 
     def handle_event(self, ev):
 
         if not self.visible:
-            return None
-
-        if super().handle_event(ev):
             return None
 
         if ev.type == pygame.KEYDOWN:
@@ -85,7 +78,7 @@ class ConfirmOverwritePopup(Popup):
 
             return False
 
-        return None
+        return super().handle_event(ev)
 
     def draw(self, screen):
         

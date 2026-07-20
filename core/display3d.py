@@ -680,10 +680,10 @@ class Display3D:
                     cam["yaw"] = -90
                     cam["pitch"] = -20
 
-                if keys[pygame.K_o] or keys[pygame.K_KP_PLUS]:
+                if keys[pygame.K_i] or keys[pygame.K_KP_PLUS]:
                     visible_generations = min(1000, visible_generations + 1)
 
-                if keys[pygame.K_i] or keys[pygame.K_KP_MINUS]:
+                if keys[pygame.K_o] or keys[pygame.K_KP_MINUS]:
                     visible_generations = max(1, visible_generations - 1)
 
                 mvp = self.compute_mvp(cam["x"], cam["y"], cam["z"], cam["yaw"], cam["pitch"])
@@ -712,7 +712,7 @@ class Display3D:
 
                 for key in visible_chunks:
                     pts = chunk_data[key]
-                    pts = pts[pts[:, 2] <= visible_generations]
+                    pts = pts[pts[:, 2] >= visible_generations]
 
                     if len(pts):
                         visible_pts.append(pts)

@@ -18,7 +18,7 @@ def resource_path(relative_path):
 
 PRESET_PATH = resource_path("presets/rules.json")
 
-class PresetPopup(Popup):
+class LoadRulePopup(Popup):
 
     def __init__(self, rect):
 
@@ -99,8 +99,6 @@ class PresetPopup(Popup):
         if not self.visible:
             return None
 
-        super().handle_event(ev)
-
         if ev.type == pygame.KEYDOWN:
 
             if ev.key == pygame.K_ESCAPE:
@@ -133,7 +131,7 @@ class PresetPopup(Popup):
                 min(self.scroll, self.max_scroll)
             )
 
-        return None
+        return super().handle_event(ev)
     
     def delete_preset(self, preset):
 

@@ -4,6 +4,7 @@ from datetime import datetime
 import numpy as np
 import pygame
 
+from core.life2dm import Life2DM
 from widgets.popup import Popup
 from widgets.button import Button
 from widgets.inputbox import InputBox
@@ -13,13 +14,11 @@ SAVE_DIR = "saves"
 
 class SaveSimulationPopup(Popup):
 
-    def __init__(self, rect):
+    def __init__(self, rect, life: Life2DM):
 
         super().__init__(rect, "Save simulation")
 
-        self.state = None
-        self.rule = None
-        self.gen = 0
+        self.life = life
 
         self.input_name = InputBox(
             (
@@ -42,19 +41,16 @@ class SaveSimulationPopup(Popup):
 
         self.result = None
 
-    def open(self, state, rule, gen):
+    def open(self):
 
-        self.state = np.asarray(
-            state,
-            dtype=np.uint8
-        )
+        self.state = self.life.state
 
         self.rule = np.asarray(
-            rule,
+            self.life.rule,
             dtype=np.uint8
         )
 
-        self.gen = gen
+        self.gen = self.life.gen
 
         self.input_name.text = ""
 
@@ -123,8 +119,6 @@ class SaveSimulationPopup(Popup):
         if not self.visible:
             return None
 
-        super().handle_event(ev)
-
         self.input_name.handle_event(ev)
 
         if self.btn_save.handle_event(ev):
@@ -135,7 +129,7 @@ class SaveSimulationPopup(Popup):
             if ev.key == pygame.K_RETURN:
                 return self.save_simulation()
 
-        return None
+        return super().handle_event(ev)
     
     def draw(self, screen):
 
