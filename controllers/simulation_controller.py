@@ -2,8 +2,8 @@ from typing import Optional
 
 import pygame
 
-from controllers.camera_controller import CameraController
-from controllers.popup_controller import PopupController, PopupResultType
+from .camera_controller import CameraController
+from .popup_controller import PopupController, PopupResultType
 from core import config
 from core.life2dm import Life2DM
 from ui.panels.simulation_panel import SimulationPanel

@@ -1,7 +1,29 @@
-from .dialogs import *
-from .panels import *
+from .dialogs import (
+    ConfirmOverwritePopup,
+    LoadRulePopup,
+    LoadSimulationPopup,
+    SaveRulePopup,
+    SaveSimulationPopup,
+)
+from .panels import (
+    ColorControls,
+    EvolutionControls,
+    KernelPanel,
+    PopulationControls,
+    RulePanel,
+    SimulationPanel,
+)
 
 __all__ = [
-    *dialogs.__all__,
-    *panels.__all__,
+    "ColorControls",
+    "ConfirmOverwritePopup",
+    "EvolutionControls",
+    "KernelPanel",
+    "LoadRulePopup",
+    "LoadSimulationPopup",
+    "PopulationControls",
+    "RulePanel",
+    "SaveRulePopup",
+    "SaveSimulationPopup",
+    "SimulationPanel",
 ]
