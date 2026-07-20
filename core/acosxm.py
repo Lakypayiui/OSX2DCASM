@@ -4,25 +4,33 @@ from scenes.menuscene import MenuScene
 from scenes.simulationscene import SimulationScene
 
 class ACOSXM:
-    FPS = 30
+    """Main application entry point for the ACOSXM cellular automaton.
 
-    def __init__(self):
+    Manages the game loop, screen, clock, and transitions between
+    the menu scene and the simulation scene.
+    """
+
+    FPS: int = 30
+
+    def __init__(self) -> None:
+        """Initializes the application window and clock."""
         pygame.init()
         pygame.display.set_caption("ACOSXM - Moore Neighborhood Cellular Automaton")
-        
+
         # Ventana redimensionable
-        self.screen = pygame.display.set_mode(
-            (config.WIN_W, config.WIN_H), 
+        self.screen: pygame.Surface = pygame.display.set_mode(
+            (config.WIN_W, config.WIN_H),
             pygame.RESIZABLE
         )
-        
-        self.clock = pygame.time.Clock()
-        self.current_width = config.WIN_W
-        self.current_height = config.WIN_H
 
-    def run(self):
+        self.clock: pygame.time.Clock = pygame.time.Clock()
+        self.current_width: int = config.WIN_W
+        self.current_height: int = config.WIN_H
+
+    def run(self) -> None:
+        """Starts the application by running the menu and then the simulation."""
         menu = MenuScene(self.screen)
         width, height = menu.run()
-        
+
         sim = SimulationScene(self.screen, width, height)
         sim.run()

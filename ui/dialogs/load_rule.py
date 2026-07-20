@@ -4,41 +4,60 @@ import pygame
 from core import config
 import os
 import sys
+from typing import Optional
 
 from widgets.popup import Popup
 from widgets.button import Button
 
-def resource_path(relative_path):
+def resource_path(relative_path: str) -> str:
+    """Resolves a resource path for both development and PyInstaller builds.
+
+    Args:
+        relative_path: Path relative to the application root.
+
+    Returns:
+        Absolute path to the resource.
+    """
     try:
-        base_path = sys._MEIPASS
+        base_path: str = sys._MEIPASS
     except AttributeError:
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
 
-PRESET_PATH = resource_path("presets/rules.json")
+PRESET_PATH: str = resource_path("presets/rules.json")
 
 class LoadRulePopup(Popup):
+    """Popup dialog for browsing and loading saved rule presets."""
 
-    def __init__(self, rect):
+    def __init__(
+        self,
+        rect: tuple[int, int, int, int],
+    ) -> None:
+        """Initializes the load rule popup.
+
+        Args:
+            rect: Position and size as (x, y, width, height).
+        """
 
         super().__init__(rect, "Rule presets")
 
-        self.presets = []
+        self.presets: list[dict] = []
 
-        self.buttons = []
+        self.buttons: list[tuple[Button, dict]] = []
 
-        self.selected_preset = None
+        self.selected_preset: Optional[dict] = None
 
-        self.scroll = 0
+        self.scroll: int = 0
 
-        self.max_scroll = 0
+        self.max_scroll: int = 0
 
-        self.delete_buttons = []
+        self.delete_buttons: list[tuple[Button, dict]] = []
 
         self.load_presets()
 
-    def load_presets(self):
+    def load_presets(self) -> None:
+        """Loads rule presets from the JSON file and builds button lists."""
 
         try:
 
@@ -51,7 +70,7 @@ class LoadRulePopup(Popup):
         self.buttons.clear()
         self.delete_buttons.clear()
 
-        visible_height = self.rect.height - 80
+        visible_height: int = self.rect.height - 80
 
         self.max_scroll = max(
             0,
@@ -60,12 +79,12 @@ class LoadRulePopup(Popup):
             
         for preset in self.presets:
 
-            load_btn = Button(
+            load_btn: Button = Button(
                 (0, 0, 0, 0),
                 preset["name"]
             )
 
-            delete_btn = Button(
+            delete_btn: Button = Button(
                 (0, 0, 0, 0),
                "X"
             )
@@ -73,12 +92,24 @@ class LoadRulePopup(Popup):
             self.buttons.append((load_btn, preset))
             self.delete_buttons.append((delete_btn, preset))
 
-    def load_preset(self, name, rule_matrix, life):
+    def load_preset(
+        self,
+        name: str,
+        rule_matrix,
+        life,
+    ) -> None:
+        """Loads a preset rule into the automaton.
+
+        Args:
+            name: Name of the preset to load.
+            rule_matrix: RuleMatrix instance to update.
+            life: Life2DM automaton to update.
+        """
 
         with open(PRESET_PATH, "r", encoding="utf-8") as f:
-            data = json.load(f)
+            data: list[dict] = json.load(f)
 
-        preset = data[name]
+        preset: dict = data[name]
 
         # Restore numpy rule
         life.rule = np.array(
@@ -89,12 +120,20 @@ class LoadRulePopup(Popup):
         # Rebuild 16x32 matrix
         for idx, value in enumerate(life.rule):
 
-            row = idx // 32
-            col = idx % 32
+            row: int = idx // 32
+            col: int = idx % 32
 
             rule_matrix.data[row][col] = int(value)
 
-    def handle_event(self, ev):
+    def handle_event(self, ev: pygame.event.Event) -> Optional[dict]:
+        """Processes a pygame event for the load rule popup.
+
+        Args:
+            ev: Pygame event to process.
+
+        Returns:
+            The selected preset dictionary, or ``None``.
+        """
 
         if not self.visible:
             return None
@@ -133,7 +172,12 @@ class LoadRulePopup(Popup):
 
         return super().handle_event(ev)
     
-    def delete_preset(self, preset):
+    def delete_preset(self, preset: dict) -> None:
+        """Deletes a preset from the JSON file.
+
+        Args:
+            preset: The preset dictionary to delete.
+        """
 
         self.presets = [
             p
@@ -150,30 +194,35 @@ class LoadRulePopup(Popup):
 
         self.load_presets()
 
-    def draw(self, screen):
+    def draw(self, screen: pygame.Surface) -> None:
+        """Draws the load rule popup onto the screen.
+
+        Args:
+            screen: Pygame display surface.
+        """
 
         super().draw(screen)
 
         if not self.visible:
             return
         
-        clip_rect = pygame.Rect(
+        clip_rect: pygame.Rect = pygame.Rect(
             self.rect.x + 10,
             self.rect.y + 50,
             self.rect.width - 20,
             self.rect.height - 70
         )
 
-        old_clip = screen.get_clip()
+        old_clip: pygame.Rect = screen.get_clip()
 
         screen.set_clip(clip_rect)
 
 
-        list_top = self.rect.y + 60
+        list_top: int = self.rect.y + 60
 
         for i, ((btn, preset), (del_btn, _)) in enumerate(zip(self.buttons, self.delete_buttons)):
 
-            y = list_top + i * 36 - self.scroll
+            y: int = list_top + i * 36 - self.scroll
 
             if y < list_top - 40:
                 continue
@@ -203,7 +252,7 @@ class LoadRulePopup(Popup):
 
         if self.max_scroll > 0:
 
-            track = pygame.Rect(
+            track: pygame.Rect = pygame.Rect(
                 self.rect.right - 12,
                 self.rect.y + 60,
                 6,
@@ -217,13 +266,13 @@ class LoadRulePopup(Popup):
                 border_radius=3
             )
 
-            thumb_h = max(
+            thumb_h: int = max(
                 30,
                 track.height * track.height //
                 (track.height + self.max_scroll)
             )
 
-            thumb_y = track.y + (
+            thumb_y: int = track.y + (
                 (track.height - thumb_h)
                 * self.scroll
                 // self.max_scroll

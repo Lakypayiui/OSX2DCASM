@@ -15,6 +15,7 @@ from ui.dialogs import (
 from widgets.popup import Popup
 
 class PopupResultType(Enum):
+    """Enumeration of popup result types."""
     LOAD_RULE = auto()
     SAVE_RULE = auto()
     LOAD_SIMULATION = auto()
@@ -23,13 +24,20 @@ class PopupResultType(Enum):
 
 @dataclass
 class PopupResult:
+    """Stores the result of a popup action.
+
+    Attributes:
+        type: The type of popup action that completed.
+        data: Additional data returned by the popup.
+    """
     type: PopupResultType
     data: object = None
 
 class PopupController:
+    """Manages a stack of popup dialogs for the simulation scene."""
 
-    POPUP_WIDTH = 500
-    POPUP_HEIGHT = 400
+    POPUP_WIDTH: int = 500
+    POPUP_HEIGHT: int = 400
 
     def __init__(
         self,
@@ -42,10 +50,11 @@ class PopupController:
         Args:
             screen: Main application surface.
             rule_matrix: Rule matrix used by rule-related dialogs.
+            life: Life2DM automaton used by simulation-related dialogs.
         """
-        self.screen = screen
-        self.rule_matrix = rule_matrix
-        self.life = life
+        self.screen: pygame.Surface = screen
+        self.rule_matrix: RuleMatrix = rule_matrix
+        self.life: Life2DM = life
 
         self.popup_stack: list[Popup] = []
 
@@ -68,37 +77,48 @@ class PopupController:
     def _create_popups(self) -> None:
         """Creates all dialogs managed by the controller."""
 
-        rect = self._popup_rect()
+        rect: tuple[int, int, int, int] = self._popup_rect()
 
-        self.load_rule = LoadRulePopup(rect)
+        self.load_rule: LoadRulePopup = LoadRulePopup(rect)
 
-        self.save_rule = SaveRulePopup(
+        self.save_rule: SaveRulePopup = SaveRulePopup(
             rect,
             self.rule_matrix.to_rule_array(),
         )
 
-        self.confirm = ConfirmOverwritePopup(
+        self.confirm: ConfirmOverwritePopup = ConfirmOverwritePopup(
             rect,
             "File",
         )
 
-        self.save_state = SaveSimulationPopup(
+        self.save_state: SaveSimulationPopup = SaveSimulationPopup(
             rect,
             self.life
         )
 
-        self.load_state = LoadSimulationPopup(rect)
+        self.load_state: LoadSimulationPopup = LoadSimulationPopup(rect)
     
     def push(self, popup: Popup) -> None:
+        """Pushes a popup onto the stack and opens it.
+
+        Args:
+            popup: The popup dialog to push.
+        """
         popup.open()
         self.popup_stack.append(popup)
 
     def pop(self) -> None:
+        """Pops the topmost popup from the stack and closes it."""
         if self.popup_stack:
             self.popup_stack.pop().close()
 
     @property
     def current_popup(self) -> Optional[Popup]:
+        """Returns the currently active popup, if any.
+
+        Returns:
+            The topmost popup on the stack, or ``None`` if the stack is empty.
+        """
         if not self.popup_stack:
             return None
 
@@ -109,7 +129,7 @@ class PopupController:
         """Returns whether any popup is currently open."""
         return bool(self.popup_stack)
 
-    def handle_event(self, event: pygame.event.Event) ->  Optional[PopupResult]:
+    def handle_event(self, event: pygame.event.Event) -> Optional[PopupResult]:
         """Processes an event for the active popup.
 
         The event is forwarded only to the currently active popup. If the popup
@@ -128,7 +148,7 @@ class PopupController:
         if self.current_popup is None:
             return None
 
-        result = self.current_popup.handle_event(event)
+        result: object = self.current_popup.handle_event(event)
 
 
         if result is None:

@@ -1,29 +1,43 @@
 import pygame
+from typing import Optional
+
 from core import config
 from widgets.button import Button
 
+
 class Popup:
+    """Base class for popup dialog windows with an overlay and close button."""
 
-    def __init__(self, rect, title="Popup"):
+    def __init__(
+        self,
+        rect: tuple[int, int, int, int],
+        title: str = "Popup",
+    ) -> None:
+        """Initializes the popup.
 
-        self.rect = pygame.Rect(rect)
+        Args:
+            rect: Position and size as (x, y, width, height).
+            title: Title text displayed at the top of the popup.
+        """
 
-        self.title = title
+        self.rect: pygame.Rect = pygame.Rect(rect)
 
-        self.visible = False
+        self.title: str = title
 
-        self.bg = (28, 28, 34)
+        self.visible: bool = False
 
-        self.border = config.P_BORDER
+        self.bg: tuple[int, int, int] = (28, 28, 34)
 
-        self.title_color = config.P_FG
+        self.border: tuple[int, int, int] = config.P_BORDER
 
-        self.overlay = (0, 0, 0, 180)
+        self.title_color: tuple[int, int, int] = config.P_FG
 
-        self.fn = pygame.font.SysFont("monospace", 14)
-        self.fb = pygame.font.SysFont("monospace", 18, bold=True)
+        self.overlay: tuple[int, int, int, int] = (0, 0, 0, 180)
 
-        self.btn_close = Button(
+        self.fn: pygame.font.Font = pygame.font.SysFont("monospace", 14)
+        self.fb: pygame.font.Font = pygame.font.SysFont("monospace", 18, bold=True)
+
+        self.btn_close: Button = Button(
             (
                 self.rect.right - 38,
                 self.rect.y + 8,
@@ -33,15 +47,25 @@ class Popup:
             "X"
         )
 
-    def open(self):
+    def open(self) -> None:
+        """Opens (shows) the popup."""
 
         self.visible = True
 
-    def close(self):
+    def close(self) -> None:
+        """Closes (hides) the popup."""
 
         self.visible = False
 
-    def handle_event(self, ev):
+    def handle_event(self, ev: pygame.event.Event) -> Optional[str]:
+        """Processes a pygame event for the popup.
+
+        Args:
+            ev: Pygame event to process.
+
+        Returns:
+            ``"closed"`` if the close button was pressed, ``None`` otherwise.
+        """
 
         if not self.visible:
             return None
@@ -52,12 +76,17 @@ class Popup:
 
         return None
 
-    def draw(self, screen):
+    def draw(self, screen: pygame.Surface) -> None:
+        """Draws the popup onto the screen.
+
+        Args:
+            screen: Pygame display surface.
+        """
 
         if not self.visible:
             return
 
-        overlay = pygame.Surface(
+        overlay: pygame.Surface = pygame.Surface(
             screen.get_size(),
             pygame.SRCALPHA
         )
@@ -81,7 +110,7 @@ class Popup:
             border_radius=8
         )
 
-        title = self.fb.render(
+        title: pygame.Surface = self.fb.render(
             self.title,
             True,
             self.title_color

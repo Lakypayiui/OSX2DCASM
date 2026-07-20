@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from typing import Optional
 
 import numpy as np
 import pygame
@@ -13,14 +14,25 @@ from widgets.inputbox import InputBox
 SAVE_DIR = "saves"
 
 class SaveSimulationPopup(Popup):
+    """Popup dialog for saving the current simulation state to a file."""
 
-    def __init__(self, rect, life: Life2DM):
+    def __init__(
+        self,
+        rect: tuple[int, int, int, int],
+        life: Life2DM,
+    ) -> None:
+        """Initializes the save simulation popup.
+
+        Args:
+            rect: Position and size as (x, y, width, height).
+            life: Cellular automaton instance to save state from.
+        """
 
         super().__init__(rect, "Save simulation")
 
-        self.life = life
+        self.life: Life2DM = life
 
-        self.input_name = InputBox(
+        self.input_name: InputBox = InputBox(
             (
                 self.rect.x + 20,
                 self.rect.y + 70,
@@ -29,7 +41,7 @@ class SaveSimulationPopup(Popup):
             )
         )
 
-        self.btn_save = Button(
+        self.btn_save: Button = Button(
             (
                 self.rect.x + self.rect.width//2 - 60,
                 self.rect.bottom - 60,
@@ -39,9 +51,14 @@ class SaveSimulationPopup(Popup):
             "Save"
         )
 
-        self.result = None
+        self.result: Optional[str] = None
 
-    def open(self):
+        self.state: np.ndarray
+        self.rule: np.ndarray
+        self.gen: int
+
+    def open(self) -> None:
+        """Opens the popup and captures the current automaton state."""
 
         self.state = self.life.state
 
@@ -56,9 +73,18 @@ class SaveSimulationPopup(Popup):
 
         self.visible = True
 
-    def save_simulation(self, overwrite=False):
+    def save_simulation(self, overwrite: bool = False) -> str:
+        """Saves the simulation state to a file.
 
-        filename = self.input_name.text.strip()
+        Args:
+            overwrite: If True, overwrite an existing file with the same name.
+
+        Returns:
+            ``"empty"`` if no name was entered, ``"exists"`` if the file already
+            exists and ``overwrite`` is False, ``"saved"`` on success.
+        """
+
+        filename: str = self.input_name.text.strip()
 
         if not filename :
             return "empty"
@@ -68,7 +94,7 @@ class SaveSimulationPopup(Popup):
             exist_ok=True
         )
 
-        path = os.path.join(
+        path: str = os.path.join(
             SAVE_DIR,
             f"{filename}.txt"
         )
@@ -114,7 +140,15 @@ class SaveSimulationPopup(Popup):
 
         return "saved"
 
-    def handle_event(self, ev):
+    def handle_event(self, ev: pygame.event.Event) -> Optional[str]:
+        """Processes a pygame event for the save simulation popup.
+
+        Args:
+            ev: Pygame event to process.
+
+        Returns:
+            The result of ``save_simulation`` if triggered, or the parent result.
+        """
 
         if not self.visible:
             return None
@@ -131,14 +165,19 @@ class SaveSimulationPopup(Popup):
 
         return super().handle_event(ev)
     
-    def draw(self, screen):
+    def draw(self, screen: pygame.Surface) -> None:
+        """Draws the save simulation popup onto the screen.
+
+        Args:
+            screen: Pygame display surface.
+        """
 
         super().draw(screen)
 
         if not self.visible:
             return
 
-        txt = self.fn.render(
+        txt: pygame.Surface = self.fn.render(
             "Save name:",
             True,
             self.title_color
@@ -157,7 +196,7 @@ class SaveSimulationPopup(Popup):
             self.fn
         )
 
-        info = self.fn.render(
+        info: pygame.Surface = self.fn.render(
             f"Generation: {self.gen}",
             True,
             self.title_color
@@ -171,7 +210,7 @@ class SaveSimulationPopup(Popup):
             )
         )
 
-        size = self.fn.render(
+        size: pygame.Surface = self.fn.render(
             f"Grid: {self.state.shape[1]}x{self.state.shape[0]}",
             True,
             self.title_color

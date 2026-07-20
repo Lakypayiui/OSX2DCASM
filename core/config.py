@@ -1,6 +1,19 @@
 import numpy as np
 import pygame
 
+#  COLOR THEMES
+
+COLOR_THEMES = [
+    {"name": "Neon",    "bg": ( 13, 13, 13), "grid": ( 25, 40, 25), "cell": (  0,255,100)},
+    {"name": "Classic", "bg": (245,245,245), "grid": (180,180,180), "cell": ( 20, 20, 20)},
+    {"name": "Cyan",    "bg": (  5, 10, 18), "grid": ( 10, 22, 36), "cell": (  0,210,255)},
+    {"name": "Fire",    "bg": ( 10,  0,  0), "grid": ( 28,  5,  0), "cell": (255,100,  0)},
+    {"name": "Matrix",  "bg": (  0,  0,  0), "grid": (  0, 28,  0), "cell": ( 50,255, 50)},
+    {"name": "Purple",  "bg": ( 10,  0, 18), "grid": ( 22,  0, 40), "cell": (210, 60,255)},
+    {"name": "Sepia",   "bg": (245,230,200), "grid": (210,185,148), "cell": ( 90, 55, 25)},
+    {"name": "Ocean",   "bg": (  0, 16, 32), "grid": (  0, 34, 68), "cell": (  0,175,255)},
+]
+
 #  SCREEN AND AUTOMATON CONFIGURATION
 
 pygame.display.init()
@@ -42,7 +55,24 @@ BTN_HOV     = ( 75,  75,  88)
  
 #  UTILITIES
  
-def draw_text(surf, font, text, pos, color, align="left"):
+def draw_text(
+    surf: pygame.Surface,
+    font: pygame.font.Font,
+    text: str,
+    pos: tuple[int, int],
+    color: tuple[int, int, int],
+    align: str = "left",
+) -> None:
+    """Renders and blits text onto a surface.
+
+    Args:
+        surf: Target surface to draw on.
+        font: Font used to render the text.
+        text: Text to render.
+        pos: (x, y) position for the text.
+        color: RGB color tuple for the text.
+        align: Horizontal alignment: ``"left"``, ``"center"``, or ``"right"``.
+    """
     img = font.render(str(text), True, color)
     x, y = pos
     if   align == "right":  x -= img.get_width()
@@ -50,6 +80,14 @@ def draw_text(surf, font, text, pos, color, align="left"):
     surf.blit(img, (x, y))
 
 
-def rule_binary(n):
-    """Integer -> list of 8 bits (LSB first)."""
+def rule_binary(n: int) -> list[int]:
+    """Converts an integer into a list of 8 bits (LSB first).
+
+    Args:
+        n: Integer value in the range [0, 255].
+
+    Returns:
+        List of 8 integers (0 or 1) representing the binary digits,
+        with the least significant bit at index 0.
+    """
     return [(n >> i) & 1 for i in range(8)]

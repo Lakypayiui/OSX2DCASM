@@ -1,18 +1,39 @@
 import pygame
+from typing import Optional
+
 
 class InputBox:
-    def __init__(self, rect, text="", numeric_only=False):
-        self.rect = pygame.Rect(rect)
-        self.text = text
-        self.active = False
-        self.numeric_only = numeric_only
+    """A single-line text input widget for keyboard entry."""
 
-        self.bg = (28, 28, 36)
-        self.border = (70, 70, 90)
-        self.border_active = (120, 180, 255)
-        self.fg = (230, 230, 240)
+    def __init__(
+        self,
+        rect: tuple[int, int, int, int],
+        text: str = "",
+        numeric_only: bool = False,
+    ) -> None:
+        """Initializes the input box.
 
-    def handle_event(self, ev):
+        Args:
+            rect: Position and size as (x, y, width, height).
+            text: Initial text content.
+            numeric_only: If True, only digits are accepted.
+        """
+        self.rect: pygame.Rect = pygame.Rect(rect)
+        self.text: str = text
+        self.active: bool = False
+        self.numeric_only: bool = numeric_only
+
+        self.bg: tuple[int, int, int] = (28, 28, 36)
+        self.border: tuple[int, int, int] = (70, 70, 90)
+        self.border_active: tuple[int, int, int] = (120, 180, 255)
+        self.fg: tuple[int, int, int] = (230, 230, 240)
+
+    def handle_event(self, ev: pygame.event.Event) -> None:
+        """Processes a pygame event for the input box.
+
+        Args:
+            ev: Pygame event to process.
+        """
         if ev.type == pygame.MOUSEBUTTONDOWN:
             self.active = self.rect.collidepoint(ev.pos)
 
@@ -32,10 +53,20 @@ class InputBox:
                     if ev.unicode.isprintable():
                         self.text += ev.unicode
 
-    def draw(self, surf, font):
+    def draw(
+        self,
+        surf: pygame.Surface,
+        font: pygame.font.Font,
+    ) -> None:
+        """Draws the input box onto a surface.
+
+        Args:
+            surf: Target surface to draw on.
+            font: Font used to render the text.
+        """
         pygame.draw.rect(surf, self.bg, self.rect, border_radius=6)
 
-        border_color = self.border_active if self.active else self.border
+        border_color: tuple[int, int, int] = self.border_active if self.active else self.border
         pygame.draw.rect(
             surf,
             border_color,
@@ -44,7 +75,7 @@ class InputBox:
             border_radius=6
         )
 
-        txt = font.render(self.text, True, self.fg)
+        txt: pygame.Surface = font.render(self.text, True, self.fg)
         surf.blit(
             txt,
             (
@@ -53,7 +84,15 @@ class InputBox:
             )
         )
 
-    def value(self, default=128):
+    def value(self, default: int = 128) -> int:
+        """Returns the current text as an integer.
+
+        Args:
+            default: Value returned if the text cannot be parsed.
+
+        Returns:
+            The integer value of the text, clamped to a minimum of 1.
+        """
         try:
             return max(1, int(self.text))
         except:

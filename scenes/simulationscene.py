@@ -1,4 +1,5 @@
 import sys
+import numpy as np
 import pygame
 import os
 from multiprocessing import Process, set_start_method
@@ -15,13 +16,18 @@ from ui.panels import SimulationPanel
 
 from controllers.popup_controller import PopupController, PopupResultType
 
-main_pid = int(os.environ.get('MAIN_PID', 0))
+main_pid: int = int(os.environ.get('MAIN_PID', 0))
 if main_pid == 0 or os.getpid() == main_pid:
     print("SimulationScene loaded PID =", os.getpid())
 else:
     print(f"[Child Process] SimulationScene loaded PID = {os.getpid()} (secondary)")
     
-def open_gl_window(history):
+def open_gl_window(history: list) -> None:
+    """Launches a separate 3D OpenGL window for viewing simulation history.
+
+    Args:
+        history: List of automaton state arrays representing the evolution.
+    """
     os.environ['MAIN_PID'] = str(os.getpid())  # force this to be considered main for 3D
     print("open_gl_window PID =", os.getpid())
     
@@ -33,50 +39,67 @@ def open_gl_window(history):
 
 
 class SimulationScene:
+    """Main simulation scene managing the automaton, UI, and controllers."""
 
-    def __init__(self, screen, width, height):
+    def __init__(
+        self,
+        screen: pygame.Surface,
+        width: int,
+        height: int,
+    ) -> None:
+        """Initializes the simulation scene.
+
+        Args:
+            screen: Pygame display surface.
+            width: Grid width in cells.
+            height: Grid height in cells.
+        """
 
         print("SimulationScene loaded PID =", os.getpid())
 
-        self.screen = screen
+        self.screen: pygame.Surface = screen
 
         # World
-        self.grid_width = width
-        self.grid_height = height
+        self.grid_width: int = width
+        self.grid_height: int = height
 
         # State
-        self.running = True
-        self.theme = {"bg": ( 13, 13, 13), "grid": ( 25, 40, 25), "cell": (  0,255,100)}
+        self.running: bool = True
+        self.theme: dict[str, tuple[int, int, int]] = {
+            "bg": (13, 13, 13),
+            "grid": (25, 40, 25),
+            "cell": (0, 255, 100),
+        }
 
         # Automaton
-        self.rule_matrix = RuleMatrix()
+        self.rule_matrix: RuleMatrix = RuleMatrix()
         
 
-        self.life = Life2DM(width, height)
-        self.history = []
+        self.life: Life2DM = Life2DM(width, height)
+        self.history: list = []
 
-        self.kernel = Kernel()
-        self.fonts = {
+        self.kernel: Kernel = Kernel()
+        self.fonts: dict[str, pygame.font.Font] = {
             "normal": pygame.font.SysFont("monospace", 14),
             "medium": pygame.font.SysFont("monospace", 14),
             "bold": pygame.font.SysFont("monospace", 14, bold=True),
             "small": pygame.font.SysFont("monospace", 14)
         }
-        self.panel = SimulationPanel(self.rule_matrix, self.kernel, self.theme, self.fonts)
+        self.panel: SimulationPanel = SimulationPanel(self.rule_matrix, self.kernel, self.theme, self.fonts)
 
-        self._all_btns =  self.panel.buttons
+        self._all_btns: list = self.panel.buttons
 
         # Popups
-        self.popup_controller = PopupController(
+        self.popup_controller: PopupController = PopupController(
             self.screen,
             self.rule_matrix,
             self.life
         )
 
-        self.camera = CameraController()
+        self.camera: CameraController = CameraController()
 
-        self.simulation_controller = SimulationController(
-            self.screen, 
+        self.simulation_controller: SimulationController = SimulationController(
+            self.screen,
             self.panel,
             self.popup_controller,
             self.camera,
@@ -87,7 +110,8 @@ class SimulationScene:
             self.grid_height
         )
 
-    def run(self):
+    def run(self) -> None:
+        """Runs the main simulation loop."""
 
         while self.running:
 
@@ -97,7 +121,8 @@ class SimulationScene:
 
             self.draw()
 
-    def events(self):
+    def events(self) -> None:
+        """Processes pygame events for the simulation."""
 
         for ev in pygame.event.get():
 
@@ -122,7 +147,8 @@ class SimulationScene:
                     self._on_btn(b)
             
 
-    def launch_3d_view(self):
+    def launch_3d_view(self) -> None:
+        """Launches the 3D view in a separate process."""
         if not self.life.history:
             return
 
@@ -139,10 +165,15 @@ class SimulationScene:
         print(f"[3D] Process launched with PID = {p.pid}")
        
 
-    def _on_btn(self, b):
+    def _on_btn(self, b) -> None:
+        """Handles a button click from the simulation panel.
 
-        d = self.panel.slider_density.value
-        dr = self.panel.slider_rule_density.value
+        Args:
+            b: The button that was clicked.
+        """
+
+        d: float = self.panel.slider_density.value
+        dr: float = self.panel.slider_rule_density.value
 
         if b is self.panel.btn_random_config:
 
@@ -198,7 +229,7 @@ class SimulationScene:
 
         elif b is self.panel.btn_add_kernel:
 
-            rule = self.kernel.apply_to_matrix(
+            rule: np.ndarray = self.kernel.apply_to_matrix(
                 self.rule_matrix
             )
 
@@ -240,7 +271,8 @@ class SimulationScene:
                 self.panel.btn_hide_panel.rect.x = config.PAD
         
 
-    def draw(self):
+    def draw(self) -> None:
+        """Draws the complete simulation screen."""
         self.theme["bg"] = self.panel.bg_color_selectors[0].get_color()
         self.theme["grid"] = self.panel.bg_color_selectors[1].get_color()
         self.theme["cell"] = self.panel.bg_color_selectors[2].get_color()

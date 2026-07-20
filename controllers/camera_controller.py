@@ -1,21 +1,28 @@
+from typing import Optional
+
 import pygame
 
 from core import config
 
 
 class CameraController:
+    """Controls zoom and pan of the automaton viewport."""
 
     def __init__(self) -> None:
         """Initializes the camera controller."""
 
-        self.scroll_x = 0
-        self.scroll_y = 0
+        self.scroll_x: int = 0
+        self.scroll_y: int = 0
 
-        self.dragging = False
-        self.last_mouse_pos = (0, 0)
+        self.dragging: bool = False
+        self.last_mouse_pos: tuple[int, int] = (0, 0)
 
     def _zoom(self, direction: int) -> None:
-        """Updates the zoom level."""
+        """Updates the zoom level.
+
+        Args:
+            direction: Positive to zoom in, negative to zoom out.
+        """
 
         if direction > 0:
             config.CELL_PX *= 1.6
@@ -29,8 +36,8 @@ class CameraController:
 
         mx, my = pygame.mouse.get_pos()
 
-        dx = mx - self.last_mouse_pos[0]
-        dy = my - self.last_mouse_pos[1]
+        dx: int = mx - self.last_mouse_pos[0]
+        dy: int = my - self.last_mouse_pos[1]
 
         self.scroll_x -= dx
         self.scroll_y -= dy
@@ -43,7 +50,15 @@ class CameraController:
         panel_visible: bool,
         popup_open: bool,
     ) -> None:
-        
+        """Processes a pygame event for camera control.
+
+        Args:
+            event: Pygame event to process.
+            panel_visible: Whether the side panel is visible (blocks zoom if the
+                mouse is over it).
+            popup_open: Whether a popup is open (blocks zoom).
+        """
+
         if event.type == pygame.MOUSEWHEEL:
 
             if popup_open:

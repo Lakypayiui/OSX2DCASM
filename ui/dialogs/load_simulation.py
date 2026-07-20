@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 import numpy as np
 import pygame
@@ -10,23 +11,33 @@ SAVE_DIR = "saves"
 
 
 class LoadSimulationPopup(Popup):
+    """Popup dialog for browsing and loading saved simulation files."""
 
-    def __init__(self, rect):
+    def __init__(
+        self,
+        rect: tuple[int, int, int, int],
+    ) -> None:
+        """Initializes the load simulation popup.
+
+        Args:
+            rect: Position and size as (x, y, width, height).
+        """
 
         super().__init__(rect, "Load simulation")
 
-        self.simulations = []
-        self.buttons = []
-        self.delete_buttons = []
+        self.simulations: list[str] = []
+        self.buttons: list[tuple[Button, str]] = []
+        self.delete_buttons: list[tuple[Button, str]] = []
 
-        self.selected = None
+        self.selected: Optional[dict] = None
 
-        self.scroll = 0
-        self.max_scroll = 0
+        self.scroll: int = 0
+        self.max_scroll: int = 0
 
         self.load_simulations()
 
-    def load_simulations(self):
+    def load_simulations(self) -> None:
+        """Scans the saves directory and builds the button list."""
 
         os.makedirs(
             SAVE_DIR,
@@ -37,7 +48,7 @@ class LoadSimulationPopup(Popup):
         self.buttons.clear()
         self.delete_buttons.clear()
 
-        files = sorted(
+        files: list[str] = sorted(
             [
                 f for f in os.listdir(SAVE_DIR)
                 if f.endswith(".txt")
@@ -62,16 +73,24 @@ class LoadSimulationPopup(Popup):
                 )
             )
 
-        visible_height = self.rect.height - 80
+        visible_height: int = self.rect.height - 80
 
         self.max_scroll = max(
             0,
             len(self.simulations) * 36 - visible_height
         )
 
-    def read_simulation(self, filename):
+    def read_simulation(self, filename: str) -> dict:
+        """Reads a simulation state from a save file.
 
-        path = os.path.join(
+        Args:
+            filename: Name of the save file.
+
+        Returns:
+            Dictionary with keys ``"generation"``, ``"rule"``, and ``"state"``.
+        """
+
+        path: str = os.path.join(
             SAVE_DIR,
             filename
         )
@@ -82,16 +101,16 @@ class LoadSimulationPopup(Popup):
             encoding="utf-8"
         ) as f:
 
-            lines = [
+            lines: list[str] = [
                 line.strip()
                 for line in f.readlines()
             ]
 
-        generation = 0
-        rule = None
-        state = []
+        generation: int = 0
+        rule: Optional[np.ndarray] = None
+        state: list[list[int]] = []
 
-        mode = None
+        mode: Optional[str] = None
 
         for line in lines:
 
@@ -125,7 +144,7 @@ class LoadSimulationPopup(Popup):
                     [int(c) for c in line]
                 )
 
-        state = np.array(
+        state_arr: np.ndarray = np.array(
             state,
             dtype=np.uint8
         )
@@ -133,12 +152,17 @@ class LoadSimulationPopup(Popup):
         return {
             "generation": generation,
             "rule": rule,
-            "state": state
+            "state": state_arr
         }
 
-    def delete_simulation(self, filename):
+    def delete_simulation(self, filename: str) -> None:
+        """Deletes a saved simulation file.
 
-        path = os.path.join(
+        Args:
+            filename: Name of the file to delete.
+        """
+
+        path: str = os.path.join(
             SAVE_DIR,
             filename
         )
@@ -148,7 +172,15 @@ class LoadSimulationPopup(Popup):
 
         self.load_simulations()
 
-    def handle_event(self, ev):
+    def handle_event(self, ev: pygame.event.Event) -> Optional[dict]:
+        """Processes a pygame event for the load simulation popup.
+
+        Args:
+            ev: Pygame event to process.
+
+        Returns:
+            The loaded simulation data dictionary, or ``None``.
+        """
 
         if not self.visible:
             return None
@@ -194,30 +226,35 @@ class LoadSimulationPopup(Popup):
 
         return super().handle_event(ev)
 
-    def draw(self, screen):
+    def draw(self, screen: pygame.Surface) -> None:
+        """Draws the load simulation popup onto the screen.
+
+        Args:
+            screen: Pygame display surface.
+        """
 
         super().draw(screen)
 
         if not self.visible:
             return
 
-        clip_rect = pygame.Rect(
+        clip_rect: pygame.Rect = pygame.Rect(
             self.rect.x + 10,
             self.rect.y + 50,
             self.rect.width - 20,
             self.rect.height - 70
         )
 
-        old_clip = screen.get_clip()
+        old_clip: pygame.Rect = screen.get_clip()
         screen.set_clip(clip_rect)
 
-        list_top = self.rect.y + 60
+        list_top: int = self.rect.y + 60
 
         for i, ((btn, file), (del_btn, _)) in enumerate(
             zip(self.buttons, self.delete_buttons)
         ):
 
-            y = list_top + i * 36 - self.scroll
+            y: int = list_top + i * 36 - self.scroll
 
             if y < list_top - 40:
                 continue
@@ -253,7 +290,7 @@ class LoadSimulationPopup(Popup):
 
         if self.max_scroll > 0:
 
-            track = pygame.Rect(
+            track: pygame.Rect = pygame.Rect(
                 self.rect.right - 12,
                 self.rect.y + 60,
                 6,
@@ -267,13 +304,13 @@ class LoadSimulationPopup(Popup):
                 border_radius=3
             )
 
-            thumb_h = max(
+            thumb_h: int = max(
                 30,
                 track.height * track.height //
                 (track.height + self.max_scroll)
             )
 
-            thumb_y = track.y + (
+            thumb_y: int = track.y + (
                 (track.height - thumb_h)
                 * self.scroll
                 // self.max_scroll

@@ -6,22 +6,33 @@ import numpy as np
 #  AUTOMATON LOGIC  (numpy for speed)
  
 class Life2DM:
-    """
-    2D cellular automaton with full Moore neighborhood.
+    """2D cellular automaton with full Moore neighborhood.
+
     state   : ndarray uint8 [GRID_H, GRID_W]
     rule    : ndarray uint8 [512]  — rule[idx] = 0 or 1
     """
-    def __init__(self, width, height):
-        self.width   = width
-        self.height  = height
-        self.state   = np.zeros((self.height, self.width), dtype=np.uint8)
-        self.rule    = np.zeros(512,              dtype=np.uint8)
-        self.gen     = 0
-        self.running = False
-        self.history = []
+
+    def __init__(self, width: int, height: int) -> None:
+        """Initializes the cellular automaton.
+
+        Args:
+            width: Number of columns in the grid.
+            height: Number of rows in the grid.
+        """
+        self.width: int   = width
+        self.height: int  = height
+        self.state: np.ndarray   = np.zeros((self.height, self.width), dtype=np.uint8)
+        self.rule: np.ndarray    = np.zeros(512,              dtype=np.uint8)
+        self.gen: int     = 0
+        self.running: bool = False
+        self.history: list[np.ndarray] = []
      
-    def sync_rule_from_matrix(self, matrix_data):
-        """matrix_data: list[16][32]  -> self.rule[512]"""
+    def sync_rule_from_matrix(self, matrix_data: list[list[int]]) -> None:
+        """Synchronizes the internal rule array from a 16x32 matrix.
+
+        Args:
+            matrix_data: A 16x32 list of binary values representing the rule.
+        """
         for i in range(16):
             for j in range(32):
                 idx = i * 32 + j
@@ -29,7 +40,8 @@ class Life2DM:
                     self.rule[idx] = matrix_data[i][j]
 
      
-    def step(self):
+    def step(self) -> None:
+        """Advances the automaton by one generation using the current rule."""
         s = self.state
         # Neighbors with torus using roll
         nw = np.roll(np.roll(s,  1, 0),  1, 1)
@@ -57,34 +69,67 @@ class Life2DM:
         self.gen  += 1
         self.history.append(np.rot90(self.state.copy(), -1))
 
-    def tick(self):
+    def tick(self) -> None:
+        """Advances the automaton if it is currently running."""
         if self.running:
             self.step()
 
      
-    def reset(self):
+    def reset(self) -> None:
+        """Resets generation counter, history, and stops the automaton."""
         self.gen   = 0
         self.history = []
         self.running = False
 
-    def full_reset(self):
+    def full_reset(self) -> None:
+        """Clears the entire grid and resets all counters."""
         self.state[:] = 0
         self.reset()
 
-    def random_fill(self, density):
+    def random_fill(self, density: float) -> None:
+        """Fills the grid with random alive cells.
+
+        Args:
+            density: Probability (0.0 to 1.0) that a cell is set to alive.
+        """
         rng = np.random.default_rng(int(time.time() * 1000) & 0xFFFFFFFF)
         self.state = (rng.random((self.height, self.width)) < density).astype(np.uint8)
         self.gen   = 0
 
-    def toggle_cell(self, cx, cy):
+    def toggle_cell(self, cx: int, cy: int) -> None:
+        """Toggles the state of a single cell.
+
+        Args:
+            cx: Column index of the cell.
+            cy: Row index of the cell.
+        """
         if 0 <= cx < self.width and 0 <= cy < self.height:
             self.state[cy, cx] ^= 1
 
-    def count_alive(self):
+    def count_alive(self) -> int:
+        """Returns the total number of alive cells in the grid.
+
+        Returns:
+            Integer count of cells with value 1.
+        """
         return int(self.state.sum())
 
      
-    def draw(self, target_surf, theme, scroll_x, scroll_y):
+    def draw(
+        self,
+        target_surf: pygame.Surface,
+        theme: dict[str, tuple[int, int, int]],
+        scroll_x: int,
+        scroll_y: int,
+    ) -> None:
+        """Draws the automaton grid onto a target surface.
+
+        Args:
+            target_surf: Pygame surface to render onto.
+            theme: Color dictionary with keys ``"bg"``, ``"grid"``, ``"cell"``.
+            scroll_x: Horizontal scroll offset in cells.
+            scroll_y: Vertical scroll offset in cells.
+        """
         w_limit, h_limit = target_surf.get_size()
         rgb = np.full((h_limit, w_limit, 3), theme["bg"], dtype=np.uint8)
 
@@ -118,7 +163,7 @@ class Life2DM:
             # Real position is: World start + (relative_index + start_index) * size
             px = start_px_x + (cx + x0) * config.CELL_PX + 1
             py = start_px_y + (cy + y0) * config.CELL_PX + 1
-            
+
             # Safety clipping to avoid painting outside the RGB array
             if 0 <= px < w_limit - config.CELL_PX and 0 <= py < h_limit - config.CELL_PX:
                 rgb[py : py + config.CELL_PX - 1, px : px + config.CELL_PX - 1] = theme["cell"]
