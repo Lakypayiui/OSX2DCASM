@@ -26,6 +26,7 @@ class Life2DM:
         self.gen: int     = 0
         self.running: bool = False
         self.history: list[np.ndarray] = []
+        self.data_population = {'time': [], 'values': []}
      
     def sync_rule_from_matrix(self, matrix_data: list[list[int]]) -> None:
         """Synchronizes the internal rule array from a 16x32 matrix.
@@ -68,6 +69,8 @@ class Life2DM:
         self.state = self.rule[idx].astype(np.uint8)
         self.gen  += 1
         self.history.append(np.rot90(self.state.copy(), -1))
+        self.data_population['time'].append(self.gen)
+        self.data_population['values'].append(self.state.sum())
 
     def tick(self) -> None:
         """Advances the automaton if it is currently running."""
@@ -79,6 +82,8 @@ class Life2DM:
         """Resets generation counter, history, and stops the automaton."""
         self.gen   = 0
         self.history = []
+        self.data_population['time'] = []
+        self.data_population['values'] = []
         self.running = False
 
     def full_reset(self) -> None:

@@ -73,10 +73,8 @@ class SimulationScene:
 
         # Automaton
         self.rule_matrix: RuleMatrix = RuleMatrix()
-        
 
         self.life: Life2DM = Life2DM(width, height)
-        self.history: list = []
 
         self.kernel: Kernel = Kernel()
         self.fonts: dict[str, pygame.font.Font] = {
@@ -85,7 +83,7 @@ class SimulationScene:
             "bold": pygame.font.SysFont("monospace", 14, bold=True),
             "small": pygame.font.SysFont("monospace", 14)
         }
-        self.panel: SimulationPanel = SimulationPanel(self.rule_matrix, self.kernel, self.theme, self.fonts)
+        self.panel: SimulationPanel = SimulationPanel(self.rule_matrix, self.kernel, self.theme, self.fonts, self.life.data_population)
 
         self._all_btns: list = self.panel.buttons
 
@@ -118,6 +116,8 @@ class SimulationScene:
             self.events()
 
             self.life.tick()
+
+            self.panel.graph_population.set_dirty()
 
             self.draw()
 

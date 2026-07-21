@@ -1,3 +1,4 @@
+from typing import Dict, List
 import pygame
 
 from core import config
@@ -6,6 +7,7 @@ from core.kernel import Kernel
 from core.rule_matrix import RuleMatrix
 
 from widgets.button import Button
+from widgets.graph import GraphWidget
 from widgets.slider import Slider
 
 from ui.panels import (
@@ -35,8 +37,9 @@ class SimulationPanel:
         self,
         rule_matrix: RuleMatrix,
         kernel: Kernel,
-        theme: dict[str, tuple[int, int, int]],
-        fonts: dict[str, pygame.font.Font],
+        theme: Dict[str, tuple[int, int, int]],
+        fonts: Dict[str, pygame.font.Font],
+        data_population: Dict[str, List],
     ) -> None:
         """Initializes the simulation control panel.
 
@@ -49,6 +52,7 @@ class SimulationPanel:
         self.rule_matrix = rule_matrix
         self.kernel = kernel
         self.theme = theme
+        self.data_population = data_population
 
         self.visible = True
 
@@ -59,9 +63,16 @@ class SimulationPanel:
         self.font_small = fonts["small"]
 
         self.buttons: list[Button] = []
+        self.scroll_y: int = 0
+        self.content_height: int = 0
+
+        self.content_surface = None
+
         self._build_layout()
 
         self.surface = pygame.Surface((config.PANEL_W, config.WIN_H))
+
+        
 
     # ------------------------------------------------------------------
     # Button factory (shared with sub-panels)
@@ -219,12 +230,32 @@ class SimulationPanel:
         self.color_controls = ColorControls(self.theme)
         y = self.color_controls._create_theme_section(y)
 
+        self.y_info = y
+        
+        y += 120
+        
+        # --- Graph --- 
+        self.graph_population = GraphWidget(
+            rect=(config.PAD, y, config.PANEL_W - config.PAD*2, 400),
+            data_ref=self.data_population,   # {'time': [], 'values': []}
+            title="Populations",
+            ylabel="Populations (bits)",
+            line_color=(255, 120, 80)
+        )
+
+
+        self.content_height = y + 380  
+
+
+        self.content_surface = pygame.Surface((config.PANEL_W, self.content_height))
+        self.content_surface.fill(config.P_BG)
+
         # --- Copy attributes for direct access (simulationscene.py compat) ---
         self._copy_population_attrs()
         self._copy_evolution_attrs()
         self._copy_color_attrs()
 
-        self.y_info = y
+        
 
     # ------------------------------------------------------------------
     # Attribute forwarding helpers
@@ -257,6 +288,14 @@ class SimulationPanel:
         self.bg_color_selectors = cc.bg_color_selectors
 
     # ------------------------------------------------------------------
+    # Scroll
+    # ------------------------------------------------------------------
+
+    def _clamp_scroll(self) -> None:
+        max_scroll = max(0, self.content_height - config.WIN_H)
+        self.scroll_y = max(0, min(self.scroll_y, max_scroll))
+
+    # ------------------------------------------------------------------
     # Draw
     # ------------------------------------------------------------------
 
@@ -266,121 +305,106 @@ class SimulationPanel:
         Args:
             screen: The main display surface to blit onto.
         """
-        if self.visible:
-            self.surface.fill(config.P_BG)
-
-            # =====================================================
-            # RULE MATRIX
-            # =====================================================
-
-            config.draw_text(
-                self.surface,
-                self.font_bold,
-                "Evolution Rule (512 bits)",
-                (config.PAD, self.y_rule_hdr),
-                config.P_FG,
-            )
-
-            self.rule_panel.draw(self.surface, self.font_small)
-            self.kernel_panel.draw(self.surface, self.font_small)
-
-            # Kernel info to the right
-            xi = self.x_kernel_info
-            yi = self.y_kernel_info
-            lines = [
-                "Click on each cell of the",
-                "kernel to activate it.",
-                "The rule is recalculated:",
-                "rule[i]=1 if all",
-                "active kernel bits",
-                "are in index i.",
-            ]
-            for ln in lines:
-                config.draw_text(
-                    self.surface, self.font_normal, ln, (xi, yi), config.P_LABEL
-                )
-                yi += 11
-                yi += 4
-
-            config.draw_text(
-                self.surface, self.font_normal, "Mask:", (xi, yi), config.P_LABEL
-            )
-            config.draw_text(
-                self.surface,
-                self.font_bold,
-                f"{self.kernel.mask:09b} ({self.kernel.mask})",
-                (xi + 65, yi),
-                config.P_VALUE,
-            )
-
-            # Rule buttons + density
-            self.btn_add_kernel.draw(self.surface, self.font_medium)
-            self.btn_random_rule.draw(self.surface, self.font_medium)
-            self.btn_clear_rule.draw(self.surface, self.font_medium)
-
-            config.draw_text(
-                self.surface,
-                self.font_small,
-                "Density Rules",
-                (self.x_rule_density_lbl, self.y_rule_density_lbl),
-                config.P_LABEL,
-            )
-
-            self.slider_rule_density.draw(self.surface, self.font_small)
-
-            self.btn_load_rule.draw(self.surface, self.font_medium)
-            self.btn_save_rule.draw(self.surface, self.font_medium)
-
-            # =====================================================
-            # DELEGATED SECTIONS
-            # =====================================================
-
-            self.population_controls.draw(
-                self.surface,
-                {
-                    "bold": self.font_bold,
-                    "medium": self.font_medium,
-                    "small": self.font_small,
-                },
-            )
-
-            self.evolution_controls.draw(
-                self.surface,
-                {
-                    "bold": self.font_bold,
-                    "medium": self.font_medium,
-                },
-            )
-
-            self.color_controls.draw(
-                self.surface,
-                {
-                    "medium": self.font_medium,
-                    "small": self.font_small,
-                },
-            )
-
-            # =====================================================
-            # BORDER
-            # =====================================================
-
-            pygame.draw.rect(
-                self.surface,
-                config.P_BORDER,
-                (0, 0, config.PANEL_W, config.WIN_H),
-                1,
-            )
-
-            self.btn_hide_panel.draw(self.surface, self.font_medium)
-
-            screen.blit(self.surface, (0, 0))
-
-            pygame.draw.line(
-                screen,
-                config.P_BORDER,
-                (config.PANEL_W, 0),
-                (config.PANEL_W, config.WIN_H),
-                2,
-            )
-        else:
+        if not self.visible:
             self.btn_hide_panel.draw(screen, self.font_medium)
+            return
+        
+        self.content_surface.fill(config.P_BG)
+
+        # =====================================================
+        # RULE MATRIX
+        # =====================================================
+
+        config.draw_text(
+            self.content_surface,
+            self.font_bold,
+            "Evolution Rule (512 bits)",
+            (config.PAD, self.y_rule_hdr),
+            config.P_FG,
+        )
+        self.rule_panel.draw(self.content_surface, self.font_small)
+        self.kernel_panel.draw(self.content_surface, self.font_small)
+
+        xi = self.x_kernel_info
+        yi = self.y_kernel_info
+        lines = [
+            "Click on each cell of the",
+            "kernel to activate it.",
+            "The rule is recalculated:",
+            "rule[i]=1 if all",
+            "active kernel bits",
+            "are in index i.",
+        ]
+        
+        for ln in lines:
+            config.draw_text(self.content_surface, self.font_normal, ln, (xi, yi), config.P_LABEL)
+            yi += 15
+
+        config.draw_text(
+            self.content_surface, self.font_normal, "Mask:", (xi, yi), config.P_LABEL
+        )
+        config.draw_text(
+            self.content_surface,
+            self.font_bold,
+            f"{self.kernel.mask:09b} ({self.kernel.mask})",
+            (xi + 65, yi),
+            config.P_VALUE,
+        )
+
+        # Rule buttons + density
+        self.btn_add_kernel.draw(self.content_surface, self.font_medium)
+        self.btn_random_rule.draw(self.content_surface, self.font_medium)
+        self.btn_clear_rule.draw(self.content_surface, self.font_medium)
+
+        config.draw_text(
+            self.content_surface,
+            self.font_small,
+            "Density Rules",
+            (self.x_rule_density_lbl, self.y_rule_density_lbl),
+            config.P_LABEL,
+        )
+
+        self.slider_rule_density.draw(self.content_surface, self.font_small)
+
+        self.btn_load_rule.draw(self.content_surface, self.font_medium)
+        self.btn_save_rule.draw(self.content_surface, self.font_medium)
+
+        # =====================================================
+        # DELEGATED SECTIONS
+        # =====================================================
+
+        self.population_controls.draw(self.content_surface, {
+            "bold": self.font_bold, "medium": self.font_medium, "small": self.font_small
+        })
+        self.evolution_controls.draw(self.content_surface, {
+            "bold": self.font_bold, "medium": self.font_medium
+        })
+        self.color_controls.draw(self.content_surface, {
+            "medium": self.font_medium, "small": self.font_small
+        })
+
+        # Gráfica
+        self.graph_population.draw(self.content_surface, self.font_normal)
+
+        # =====================================================
+        # BORDER
+        # =====================================================
+
+        pygame.draw.rect(
+            self.content_surface, config.P_BORDER, (0, 0, config.PANEL_W, self.content_height), 1
+        )
+
+        self.btn_hide_panel.draw(self.content_surface, self.font_medium)
+
+        # =====================================================
+        # Blit solo la porción visible con scroll
+        # =====================================================
+        self.surface.fill(config.P_BG)
+        visible_rect = pygame.Rect(0, self.scroll_y, config.PANEL_W, config.WIN_H)
+        self.surface.blit(self.content_surface, (0, 0), visible_rect)
+
+        pygame.draw.line(
+            screen, config.P_BORDER, (config.PANEL_W, 0), (config.PANEL_W, config.WIN_H), 2
+        )
+
+        screen.blit(self.surface, (0, 0))

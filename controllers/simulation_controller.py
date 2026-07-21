@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Dict, List, Optional
 
 import pygame
 
@@ -60,9 +60,11 @@ class SimulationController:
 
         self._handle_mouse(event)
 
+        self._handle_popups(event)
+
         self._handle_panel(event)
 
-        self._handle_popups(event)
+        
 
 
     def _handle_mouse(self, event: pygame.event.Event) -> None:
@@ -86,24 +88,6 @@ class SimulationController:
                 panel_visible=self.panel.visible,
                 popup_open=self.popup_controller.has_popup,
         )
-
-        # Kernel
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-
-            self.panel.kernel_panel.handle_click(event.pos)
-
-        # Rule matrix
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-
-            res: Optional[int] = self.panel.rule_panel.handle_click(event.pos)
-
-            if res is not None:
-
-                self.life.sync_rule_from_matrix(
-                    self.rule_matrix.data
-                )
-
-                self.kernel.set_mask(res)
 
     def _paint_cell(self, pos: tuple[int, int]) -> None:
         """Toggles a cell under the given screen position.
@@ -152,13 +136,40 @@ class SimulationController:
             event: Pygame event to process.
         """
         # Slider
-        self.panel.slider_density.handle_event(event)
-        self.panel.slider_rule_density.handle_event(event)
-        # Color selectors
-        for s in self.panel.bg_color_selectors:
-            s.handle_event(event)
+        if event.type == pygame.MOUSEWHEEL:
+            if pygame.mouse.get_pos()[0]< config.PANEL_W:
+                self.panel.scroll_y -= event.y * 30  
+                self.panel._clamp_scroll()
 
-        pass
+        if self.panel.visible:
+            if event.type == pygame.MOUSEMOTION or event.type == pygame.MOUSEBUTTONDOWN:
+                event.pos = (event.pos[0], event.pos[1] + self.panel.scroll_y)
+
+            # Kernel
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+
+                self.panel.kernel_panel.handle_click(event.pos)
+
+            # Rule matrix
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+
+                res: Optional[int] = self.panel.rule_panel.handle_click(event.pos)
+
+                if res is not None:
+
+                    self.life.sync_rule_from_matrix(
+                        self.rule_matrix.data
+                    )
+
+                    self.kernel.set_mask(res)
+
+            self.panel.slider_density.handle_event(event)
+            self.panel.slider_rule_density.handle_event(event)
+            # Color selectors
+            for s in self.panel.bg_color_selectors:
+                s.handle_event(event)
+
+            self.panel.graph_population.handle_event(event)
 
     def _handle_popups(self, event: pygame.event.Event) -> None:
         """Processes events for popup dialogs and their results.
