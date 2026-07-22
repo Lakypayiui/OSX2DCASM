@@ -9,6 +9,7 @@ from core.rule_matrix import RuleMatrix
 
 from widgets.button import Button
 from widgets.graph import GraphWidget
+from widgets.label import Label
 from widgets.slider import Slider
 
 from ui.panels import (
@@ -148,6 +149,10 @@ class SimulationPanel:
         y = config.PAD
 
         self.y_rule_hdr = y
+
+        self._rule_header_label = Label(
+            (config.PAD, y), "Evolution Rule (512 bits)", config.P_FG
+        )
         y += 28
 
         matrix_x = config.PAD + 16
@@ -159,6 +164,23 @@ class SimulationPanel:
 
         self.x_kernel_info = kernel_x + self.kernel_panel.total_w + 16
         self.y_kernel_info = y
+
+        self._kernel_info_labels: list[Label] = []
+        xi = self.x_kernel_info
+        yi = self.y_kernel_info
+        for ln in [
+            "Click on each cell of the",
+            "kernel to activate it.",
+            "The rule is recalculated:",
+            "rule[i]=1 if all",
+            "active kernel bits",
+            "are in index i.",
+        ]:
+            self._kernel_info_labels.append(Label((xi, yi), ln, config.P_LABEL))
+            yi += 15
+
+        self._mask_label = Label((xi, yi), "Mask:", config.P_LABEL)
+        self._mask_value_label = Label((xi + 65, yi), "", config.P_VALUE)
 
         self.btn_add_kernel = self._create_button("Add kernel", 2, y)
         self.buttons.append(self.btn_add_kernel)
@@ -179,6 +201,10 @@ class SimulationPanel:
         self.y_rule_density_lbl = y
         self.x_rule_density_lbl = config.PAD + 2 * (
             self.BUTTON_WIDTH + self.BUTTON_GAP
+        )
+
+        self._density_rules_label = Label(
+            (self.x_rule_density_lbl, y), "Density Rules", config.P_LABEL
         )
 
         y += 13
@@ -340,54 +366,23 @@ class SimulationPanel:
         # RULE MATRIX
         # =====================================================
 
-        config.draw_text(
-            self.content_surface,
-            self.font_bold,
-            "Evolution Rule (512 bits)",
-            (config.PAD, self.y_rule_hdr),
-            config.P_FG,
-        )
+        self._rule_header_label.draw(self.content_surface, self.font_bold)
         self.rule_panel.draw(self.content_surface, self.font_small)
         self.kernel_panel.draw(self.content_surface, self.font_small)
 
-        xi = self.x_kernel_info
-        yi = self.y_kernel_info
-        lines = [
-            "Click on each cell of the",
-            "kernel to activate it.",
-            "The rule is recalculated:",
-            "rule[i]=1 if all",
-            "active kernel bits",
-            "are in index i.",
-        ]
-        
-        for ln in lines:
-            config.draw_text(self.content_surface, self.font_normal, ln, (xi, yi), config.P_LABEL)
-            yi += 15
-
-        config.draw_text(
-            self.content_surface, self.font_normal, "Mask:", (xi, yi), config.P_LABEL
-        )
-        config.draw_text(
-            self.content_surface,
-            self.font_bold,
-            f"{self.kernel.mask:09b} ({self.kernel.mask})",
-            (xi + 65, yi),
-            config.P_VALUE,
-        )
+        # Kernel info labels
+        for lbl in self._kernel_info_labels:
+            lbl.draw(self.content_surface, self.font_normal)
+        self._mask_label.draw(self.content_surface, self.font_normal)
+        self._mask_value_label.text = f"{self.kernel.mask:09b} ({self.kernel.mask})"
+        self._mask_value_label.draw(self.content_surface, self.font_bold)
 
         # Rule buttons + density
         self.btn_add_kernel.draw(self.content_surface, self.font_medium)
         self.btn_random_rule.draw(self.content_surface, self.font_medium)
         self.btn_clear_rule.draw(self.content_surface, self.font_medium)
 
-        config.draw_text(
-            self.content_surface,
-            self.font_small,
-            "Density Rules",
-            (self.x_rule_density_lbl, self.y_rule_density_lbl),
-            config.P_LABEL,
-        )
+        self._density_rules_label.draw(self.content_surface, self.font_small)
 
         self.slider_rule_density.draw(self.content_surface, self.font_small)
 

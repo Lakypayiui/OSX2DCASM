@@ -1,4 +1,5 @@
-from widgets.interactive_widget import InteractiveWidget
+from widgets.base_widget import BaseWidget
+from widgets.label import Label
 from widgets.button import Button
 from widgets.inputbox import InputBox
 from widgets.slider import Slider

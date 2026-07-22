@@ -8,6 +8,7 @@ import pygame
 
 from core import config
 from widgets.button import Button
+from widgets.label import Label
 
 
 class EvolutionControls:
@@ -55,6 +56,8 @@ class EvolutionControls:
         self.btn_load: Button | None = None
         self.btn_view_3d: Button | None = None
 
+        self._header_label: Label | None = None
+
     def _create_evolution_section(self, y: int) -> int:
         """Builds the evolution control buttons at the given y offset.
 
@@ -65,6 +68,10 @@ class EvolutionControls:
             The next available y position after the section.
         """
         self.y_evolution_hdr = y
+
+        self._header_label = Label(
+            (config.PAD, y), "Evolution", config.P_FG
+        )
 
         y += 25
 
@@ -109,13 +116,8 @@ class EvolutionControls:
                 to :class:`pygame.font.Font` instances.
         """
         # --- Section header ---
-        config.draw_text(
-            surface,
-            fonts["bold"],
-            "Evolution",
-            (config.PAD, self.y_evolution_hdr),
-            config.P_FG,
-        )
+        assert self._header_label is not None
+        self._header_label.draw(surface, fonts["bold"])
 
         pygame.draw.line(
             surface,

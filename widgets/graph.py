@@ -13,10 +13,10 @@ import pygame
 
 from core.config import P_BORDER, P_FG
 from widgets.button import Button
-from widgets.interactive_widget import InteractiveWidget
+from widgets.base_widget import BaseWidget
 
 
-class GraphWidget(InteractiveWidget):
+class GraphWidget(BaseWidget):
     """Interactive time-series graph widget.
 
     Reads data from a mutable ``data_ref`` dictionary with keys
@@ -124,6 +124,9 @@ class GraphWidget(InteractiveWidget):
         Returns:
             ``True`` if an export button was clicked.
         """
+        if not self.enabled:
+            return False
+
         clicked = False
 
         if self.btn_export_img and self.btn_export_img.handle_event(ev):

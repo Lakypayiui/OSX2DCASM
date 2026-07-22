@@ -8,6 +8,7 @@ import pygame
 
 from core import config
 from widgets.button import Button
+from widgets.label import Label
 from widgets.slider import Slider
 
 
@@ -57,6 +58,9 @@ class PopulationControls:
         self.btn_clear_view: Button | None = None
         self.slider_density: Slider | None = None
 
+        self._header_label: Label | None = None
+        self._density_label: Label | None = None
+
     def _create_population_section(self, y: int) -> int:
         """Builds population control widgets at the given y offset.
 
@@ -81,7 +85,14 @@ class PopulationControls:
         # --- Density slider ---
         self.y_density_lbl = y
 
+        self._header_label = Label(
+            (config.PAD, self.y_population_hdr), "Population", config.P_FG
+        )
         y += 13
+
+        self._density_label = Label(
+            (config.PAD, self.y_density_lbl), "Density Population", config.P_LABEL
+        )
 
         self.slider_density = Slider(
             (config.PAD, y, self.width - 65, 12),
@@ -105,13 +116,8 @@ class PopulationControls:
                 ``"small"``) to :class:`pygame.font.Font` instances.
         """
         # --- Section header ---
-        config.draw_text(
-            surface,
-            fonts["bold"],
-            "Population",
-            (config.PAD, self.y_population_hdr),
-            config.P_FG,
-        )
+        assert self._header_label is not None
+        self._header_label.draw(surface, fonts["bold"])
 
         pygame.draw.line(
             surface,
@@ -129,11 +135,6 @@ class PopulationControls:
         self.btn_clear_view.draw(surface, fonts["medium"])
 
         # --- Density label + slider ---
-        config.draw_text(
-            surface,
-            fonts["small"],
-            "Density Population",
-            (config.PAD, self.y_density_lbl),
-            config.P_LABEL,
-        )
+        assert self._density_label is not None
+        self._density_label.draw(surface, fonts["small"])
         self.slider_density.draw(surface, fonts["small"])

@@ -1,10 +1,10 @@
 import pygame
 from typing import Optional
 
-from widgets.interactive_widget import InteractiveWidget
+from widgets.base_widget import BaseWidget
 
 
-class InputBox(InteractiveWidget):
+class InputBox(BaseWidget):
     """A single-line text input widget for keyboard entry."""
 
     def __init__(
@@ -36,6 +36,9 @@ class InputBox(InteractiveWidget):
         Args:
             ev: Pygame event to process.
         """
+        if not self.enabled:
+            return
+
         if ev.type == pygame.MOUSEBUTTONDOWN:
             self.active = self.rect.collidepoint(ev.pos)
 

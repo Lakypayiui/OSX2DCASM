@@ -3,10 +3,10 @@ from typing import Optional
 
 from core.config import *
 
-from widgets.interactive_widget import InteractiveWidget
+from widgets.base_widget import BaseWidget
 
 
-class Button(InteractiveWidget):
+class Button(BaseWidget):
     """A clickable UI button with optional toggle behavior."""
 
     def __init__(
@@ -51,6 +51,9 @@ class Button(InteractiveWidget):
         Returns:
             ``True`` if the button was clicked, ``False`` otherwise.
         """
+        if not self.enabled:
+            return False
+
         if ev.type == pygame.MOUSEMOTION:
             self._hov = self.rect.collidepoint(ev.pos)
         if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:

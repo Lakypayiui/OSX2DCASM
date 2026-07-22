@@ -2,22 +2,22 @@ from __future__ import annotations
 from typing import List, Optional, Tuple
 import pygame
 
-from .interactive_widget import InteractiveWidget  # Adjust import based on your project structure
+from .base_widget import BaseWidget  # Adjust import based on your project structure
 
 
-class Accordion(InteractiveWidget):
+class Accordion(BaseWidget):
     """A collapsible container widget that displays a header and optional content.
 
     The accordion consists of a clickable header (with label) and a list of
     child widgets that are shown only when expanded. It follows the
-    InteractiveWidget interface for event handling and rendering.
+    BaseWidget interface for event handling and rendering.
     """
 
     def __init__(
         self,
         rect: pygame.Rect,
         label: str,
-        widgets: List[InteractiveWidget],
+        widgets: List[BaseWidget],
         expanded: bool = False,
         padding: int = 8,
         header_height: int = 40,
@@ -29,7 +29,7 @@ class Accordion(InteractiveWidget):
         Args:
             rect: The bounding rectangle for the entire accordion.
             label: Text displayed in the header.
-            widgets: List of InteractiveWidget children to display when expanded.
+            widgets: List of BaseWidget children to display when expanded.
             expanded: Whether the accordion starts expanded.
             padding: Horizontal padding for content and header elements.
             header_height: Height of the clickable header section.
@@ -38,7 +38,7 @@ class Accordion(InteractiveWidget):
         """
         self.rect = rect.copy()
         self.label = label
-        self.widgets: List[InteractiveWidget] = widgets
+        self.widgets: List[BaseWidget] = widgets
         self._expanded = expanded
         self.padding = padding
         self.header_height = header_height
@@ -81,24 +81,27 @@ class Accordion(InteractiveWidget):
         """Toggles the expanded/collapsed state of the accordion."""
         self._expanded = not self._expanded
         self._update_layout()
+        self._sync_children_enabled()
 
     def expand(self) -> None:
         """Expands the accordion to show its content."""
         if not self._expanded:
             self._expanded = True
             self._update_layout()
+            self._sync_children_enabled()
 
     def collapse(self) -> None:
         """Collapses the accordion, hiding its content."""
         if self._expanded:
             self._expanded = False
             self._update_layout()
+            self._sync_children_enabled()
 
-    def add_widget(self, widget: InteractiveWidget) -> None:
+    def add_widget(self, widget: BaseWidget) -> None:
         """Adds a new widget to the accordion's content area.
 
         Args:
-            widget: The InteractiveWidget to add.
+            widget: The BaseWidget to add.
         """
         self.widgets.append(widget)
         self._update_layout()
@@ -109,14 +112,13 @@ class Accordion(InteractiveWidget):
         self._update_layout()
 
     # ------------------------------------------------------------------
-    # InteractiveWidget interface implementation
+    # BaseWidget interface implementation
     # ------------------------------------------------------------------
 
     def handle_event(self, ev: pygame.event.Event) -> Optional[bool]:
         """Processes a single pygame event.
 
-        Handles clicks on the header to toggle expansion and forwards
-        events to child widgets when expanded.
+        Handles clicks on the header to toggle expansion
 
         Returns:
             True if the event was consumed, None/False otherwise.
@@ -131,14 +133,6 @@ class Accordion(InteractiveWidget):
             if self._header_rect.collidepoint(ev.pos):
                 self.toggle()
                 return True
-
-        # Forward events to children only when expanded
-        if self._expanded:
-            for widget in self.widgets:
-                if widget.visible and getattr(widget, 'enabled', True):
-                    consumed = widget.handle_event(ev)
-                    if consumed:
-                        return True
 
         return None
 
@@ -224,3 +218,12 @@ class Accordion(InteractiveWidget):
         self.rect.height = (
             self.header_height + self.content_padding + total_content_h + self.padding
         )
+
+    def _sync_children_enabled(self) -> None:
+        """Enable or disable child widgets based on expanded state.
+
+        When collapsed, children are disabled so they stop receiving
+        events.  When expanded, children are re-enabled.
+        """
+        for widget in self.widgets:
+            widget.enabled = self._expanded

@@ -3,10 +3,10 @@ from typing import Optional
 
 from core.config import *
 
-from widgets.interactive_widget import InteractiveWidget
+from widgets.base_widget import BaseWidget
 
 
-class RGBSelector(InteractiveWidget):
+class RGBSelector(BaseWidget):
     """A widget with three sliders for selecting an RGB color."""
 
     def __init__(
@@ -54,6 +54,9 @@ class RGBSelector(InteractiveWidget):
         Args:
             ev: Pygame event to process.
         """
+        if not self.enabled:
+            return
+
         if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
             if self.r_rect.collidepoint(ev.pos):
                 self.dragging = "r"

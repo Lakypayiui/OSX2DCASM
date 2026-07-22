@@ -6,6 +6,7 @@ import pygame
 
 from core import config
 from widgets.accordion import Accordion
+from widgets.label import Label
 from widgets.rgbselector import RGBSelector
 
 
@@ -39,6 +40,7 @@ class ColorControls:
 
         self.y_theme_lbl: int = 0
         self.bg_color_selectors: list[RGBSelector] = []
+        self._labels: list[Label] = []
 
     def _create_theme_section(self, y: int) -> int:
         """Builds the colour-selector widgets at the given y offset.
@@ -54,22 +56,30 @@ class ColorControls:
         y += 13
 
         self.bg_color_selectors = []
+        self._labels.clear()
 
         # Compute column width so selectors span the panel width.
-        csw = (self.width- config.PAD) // len(self._THEME_KEYS) - 2
+        csw = (self.width - config.PAD) // len(self._THEME_KEYS) - 2
 
         for idx, key in enumerate(self._THEME_KEYS):
             bx = config.PAD + idx * (csw + 2)
             initial = self._theme[key]
             self.bg_color_selectors.append(
-                RGBSelector((bx, y+50, csw, 80), initial=initial)
+                RGBSelector((bx, y + 50, csw, 80), initial=initial)
+            )
+            self._labels.append(
+                Label(
+                    (config.PAD + idx * ((self.width - config.PAD) // 3), y),
+                    self._THEME_LABELS[idx],
+                    config.P_LABEL,
+                )
             )
 
         self.color_accordion = Accordion(
-            rect=pygame.Rect(config.PAD, y, self.width-config.PAD*2, 40),
+            rect=pygame.Rect(config.PAD, y, self.width - config.PAD * 2, 40),
             label="Color",
             widgets=self.bg_color_selectors,
-            expanded=False
+            expanded=False,
         )
 
         y += 17 + config.PAD
@@ -87,20 +97,7 @@ class ColorControls:
             fonts: Mapping of font names (``"medium"``, ``"small"``) to
                 :class:`pygame.font.Font` instances.
         """
-        csw = (self.width- config.PAD) // len(self._THEME_KEYS)
-
-        for idx, label in enumerate(self._THEME_LABELS):
-            config.draw_text(
-                surface,
-                fonts["medium"],
-                label,
-                (
-                    config.PAD + idx * ((self.width - config.PAD) // 3),
-                    self.y_theme_lbl,
-                ),
-                config.P_LABEL,
-            )
+        for label in self._labels:
+            label.draw(surface, fonts["medium"])
 
         self.color_accordion.draw(surface, fonts["small"])
-        #for selector in self.bg_color_selectors:
-        #    selector.draw(surface, fonts["small"])

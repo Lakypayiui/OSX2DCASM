@@ -3,10 +3,10 @@ from typing import Optional
 
 from core.config import *
 
-from widgets.interactive_widget import InteractiveWidget
+from widgets.base_widget import BaseWidget
 
 
-class Slider(InteractiveWidget):
+class Slider(BaseWidget):
     """A draggable horizontal slider widget for selecting numerical values."""
 
     def __init__(
@@ -41,6 +41,9 @@ class Slider(InteractiveWidget):
         Args:
             ev: Pygame event to process.
         """
+        if not self.enabled:
+            return
+
         if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
             if self.rect.collidepoint(ev.pos):
                 self._drag = True; self._set(ev.pos[0])
