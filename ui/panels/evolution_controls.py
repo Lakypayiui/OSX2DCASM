@@ -31,6 +31,7 @@ class EvolutionControls:
         self,
         create_button: Callable[..., Button],
         buttons_list: list[Button],
+        width: int
     ) -> None:
         """Initializes evolution controls.
 
@@ -39,7 +40,9 @@ class EvolutionControls:
                 :meth:`SimulationPanel._create_button`.
             buttons_list: The panel's global button list that every created
                 button is appended to (for hit-testing).
+            width: width of the panel.
         """
+        self.width = width
         self._create_button = create_button
         self._buttons_list = buttons_list
 
@@ -118,7 +121,7 @@ class EvolutionControls:
             surface,
             config.P_BORDER,
             (config.PAD, self.y_evolution_hdr + 16),
-            (config.PANEL_W - config.PAD, self.y_evolution_hdr + 16),
+            (self.width - config.PAD, self.y_evolution_hdr + 16),
         )
 
         # --- Buttons ---

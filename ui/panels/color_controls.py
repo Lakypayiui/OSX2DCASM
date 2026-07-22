@@ -5,6 +5,7 @@ from __future__ import annotations
 import pygame
 
 from core import config
+from widgets.accordion import Accordion
 from widgets.rgbselector import RGBSelector
 
 
@@ -25,14 +26,16 @@ class ColorControls:
     _THEME_KEYS = ["bg", "grid", "cell"]
     _THEME_LABELS = ["Background", "Grid", "Cell"]
 
-    def __init__(self, theme: dict[str, tuple[int, int, int]]) -> None:
+    def __init__(self, theme: dict[str, tuple[int, int, int]], width: int) -> None:
         """Initializes colour controls.
 
         Args:
             theme: Mapping of theme element names to their default RGB
                 values (e.g. ``{"bg": (0,0,0), "grid": ..., "cell": ...}``).
+            width: width of the panel.
         """
         self._theme = theme
+        self.width = width
 
         self.y_theme_lbl: int = 0
         self.bg_color_selectors: list[RGBSelector] = []
@@ -53,14 +56,21 @@ class ColorControls:
         self.bg_color_selectors = []
 
         # Compute column width so selectors span the panel width.
-        csw = (config.PANEL_W - config.PAD) // len(self._THEME_KEYS) - 2
+        csw = (self.width- config.PAD) // len(self._THEME_KEYS) - 2
 
         for idx, key in enumerate(self._THEME_KEYS):
             bx = config.PAD + idx * (csw + 2)
             initial = self._theme[key]
             self.bg_color_selectors.append(
-                RGBSelector((bx, y, csw, 80), initial=initial)
+                RGBSelector((bx, y+50, csw, 80), initial=initial)
             )
+
+        self.color_accordion = Accordion(
+            rect=pygame.Rect(config.PAD, y, self.width-config.PAD*2, 40),
+            label="Color",
+            widgets=self.bg_color_selectors,
+            expanded=False
+        )
 
         y += 17 + config.PAD
         return y
@@ -77,7 +87,7 @@ class ColorControls:
             fonts: Mapping of font names (``"medium"``, ``"small"``) to
                 :class:`pygame.font.Font` instances.
         """
-        csw = (config.PANEL_W - config.PAD) // len(self._THEME_KEYS)
+        csw = (self.width- config.PAD) // len(self._THEME_KEYS)
 
         for idx, label in enumerate(self._THEME_LABELS):
             config.draw_text(
@@ -85,11 +95,12 @@ class ColorControls:
                 fonts["medium"],
                 label,
                 (
-                    config.PAD + idx * ((config.PANEL_W - config.PAD) // 3),
+                    config.PAD + idx * ((self.width - config.PAD) // 3),
                     self.y_theme_lbl,
                 ),
                 config.P_LABEL,
             )
 
-        for selector in self.bg_color_selectors:
-            selector.draw(surface, fonts["small"])
+        self.color_accordion.draw(surface, fonts["small"])
+        #for selector in self.bg_color_selectors:
+        #    selector.draw(surface, fonts["small"])

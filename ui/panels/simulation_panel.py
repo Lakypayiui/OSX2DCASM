@@ -4,6 +4,7 @@ import pygame
 from core import config
 
 from core.kernel import Kernel
+from core.life2dm import Life2DM
 from core.rule_matrix import RuleMatrix
 
 from widgets.button import Button
@@ -37,9 +38,12 @@ class SimulationPanel:
         self,
         rule_matrix: RuleMatrix,
         kernel: Kernel,
+        life: Life2DM,
         theme: Dict[str, tuple[int, int, int]],
         fonts: Dict[str, pygame.font.Font],
-        data_population: Dict[str, List],
+        width: int,
+        height: int
+        
     ) -> None:
         """Initializes the simulation control panel.
 
@@ -48,11 +52,15 @@ class SimulationPanel:
             kernel: Kernel model displayed by the kernel panel.
             theme: Mapping of theme element names to RGB colors.
             fonts: Fonts used to render the panel.
+            width:
+            height: 
         """
         self.rule_matrix = rule_matrix
         self.kernel = kernel
         self.theme = theme
-        self.data_population = data_population
+        self.life = life
+        self.width = width
+        self.height = height
 
         self.visible = True
 
@@ -70,7 +78,7 @@ class SimulationPanel:
 
         self._build_layout()
 
-        self.surface = pygame.Surface((config.PANEL_W, config.WIN_H))
+        self.surface = pygame.Surface((self.width, self.height))
 
         
 
@@ -120,13 +128,12 @@ class SimulationPanel:
     def _create_hide_button(self) -> None:
         """Creates the small hide/show toggle in the top-right corner."""
         self.btn_hide_panel = Button(
-            (config.PANEL_W - config.PAD - 40, config.PAD, 40, 20),
+            (self.width - config.PAD - 40, config.PAD, 40, 20),
             "<<",
             toggle=False,
             bg=config.BTN_OFF_BG,
             bg_on=config.BTN_ON_BG,
         )
-        self.buttons.append(self.btn_hide_panel)
 
     # ------------------------------------------------------------------
     # Rule-matrix + kernel section (stays inline)
@@ -144,7 +151,7 @@ class SimulationPanel:
         y += 28
 
         matrix_x = config.PAD + 16
-        self.rule_panel = RulePanel(self.rule_matrix, matrix_x, y)
+        self.rule_panel = RulePanel(self.rule_matrix, matrix_x, y, self.width*0.9)
         y += self.rule_panel.total_h + config.PAD + 18
 
         kernel_x = matrix_x
@@ -216,38 +223,48 @@ class SimulationPanel:
 
         # --- Population sub-panel ---
         self.population_controls = PopulationControls(
-            self._create_button, self.buttons
+            self._create_button, self.buttons, self.width
         )
         y = self.population_controls._create_population_section(y)
 
         # --- Evolution sub-panel ---
         self.evolution_controls = EvolutionControls(
-            self._create_button, self.buttons
+            self._create_button, self.buttons, self.width
         )
         y = self.evolution_controls._create_evolution_section(y)
 
         # --- Color / theme sub-panel ---
-        self.color_controls = ColorControls(self.theme)
+        self.color_controls = ColorControls(self.theme, self.width)
         y = self.color_controls._create_theme_section(y)
 
         self.y_info = y
         
-        y += 120
+        y += 90
         
         # --- Graph --- 
         self.graph_population = GraphWidget(
-            rect=(config.PAD, y, config.PANEL_W - config.PAD*2, 400),
-            data_ref=self.data_population,   # {'time': [], 'values': []}
-            title="Populations",
-            ylabel="Populations (bits)",
+            rect=(config.PAD, y, self.width - config.PAD*2, 400),
+            data_ref=self.life.data_population,   # {'time': [], 'values': []}
+            title="Population",
+            ylabel="Alive Cells",
+            line_color=(255, 120, 80)
+        )
+
+        y += 420
+
+        self.graph_global_entropy = GraphWidget(
+            rect=(config.PAD, y, self.width - config.PAD*2, 400),
+            data_ref=self.life.data_global_entropy,   # {'time': [], 'values': []}
+            title="Global Entropy",
+            ylabel="H Entropy (bits)",
             line_color=(255, 120, 80)
         )
 
 
-        self.content_height = y + 380  
+        self.content_height = y + 440  
 
 
-        self.content_surface = pygame.Surface((config.PANEL_W, self.content_height))
+        self.content_surface = pygame.Surface((self.width, self.content_height))
         self.content_surface.fill(config.P_BG)
 
         # --- Copy attributes for direct access (simulationscene.py compat) ---
@@ -286,13 +303,21 @@ class SimulationPanel:
         cc = self.color_controls
         self.y_theme_lbl = cc.y_theme_lbl
         self.bg_color_selectors = cc.bg_color_selectors
+        self.color_accordion = cc.color_accordion
+
+    # ------------------------------------------------------------------
+    # Resize
+    # ------------------------------------------------------------------
+
+    def _on_resize(self, height: int) -> None:
+        self.height = height
 
     # ------------------------------------------------------------------
     # Scroll
     # ------------------------------------------------------------------
 
     def _clamp_scroll(self) -> None:
-        max_scroll = max(0, self.content_height - config.WIN_H)
+        max_scroll = max(0, self.content_height - self.height)
         self.scroll_y = max(0, min(self.scroll_y, max_scroll))
 
     # ------------------------------------------------------------------
@@ -385,13 +410,14 @@ class SimulationPanel:
 
         # Gráfica
         self.graph_population.draw(self.content_surface, self.font_normal)
+        self.graph_global_entropy.draw(self.content_surface, self.font_normal)
 
         # =====================================================
         # BORDER
         # =====================================================
 
         pygame.draw.rect(
-            self.content_surface, config.P_BORDER, (0, 0, config.PANEL_W, self.content_height), 1
+            self.content_surface, config.P_BORDER, (0, 0, self.width, self.content_height), 1
         )
 
         self.btn_hide_panel.draw(self.content_surface, self.font_medium)
@@ -400,11 +426,11 @@ class SimulationPanel:
         # Blit solo la porción visible con scroll
         # =====================================================
         self.surface.fill(config.P_BG)
-        visible_rect = pygame.Rect(0, self.scroll_y, config.PANEL_W, config.WIN_H)
+        visible_rect = pygame.Rect(0, self.scroll_y, self.width, self.height)
         self.surface.blit(self.content_surface, (0, 0), visible_rect)
 
         pygame.draw.line(
-            screen, config.P_BORDER, (config.PANEL_W, 0), (config.PANEL_W, config.WIN_H), 2
+            screen, config.P_BORDER, (self.width, 0), (self.width, self.height), 2
         )
 
         screen.blit(self.surface, (0, 0))

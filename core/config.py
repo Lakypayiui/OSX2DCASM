@@ -1,40 +1,13 @@
 import numpy as np
 import pygame
 
-#  COLOR THEMES
-
-COLOR_THEMES = [
-    {"name": "Neon",    "bg": ( 13, 13, 13), "grid": ( 25, 40, 25), "cell": (  0,255,100)},
-    {"name": "Classic", "bg": (245,245,245), "grid": (180,180,180), "cell": ( 20, 20, 20)},
-    {"name": "Cyan",    "bg": (  5, 10, 18), "grid": ( 10, 22, 36), "cell": (  0,210,255)},
-    {"name": "Fire",    "bg": ( 10,  0,  0), "grid": ( 28,  5,  0), "cell": (255,100,  0)},
-    {"name": "Matrix",  "bg": (  0,  0,  0), "grid": (  0, 28,  0), "cell": ( 50,255, 50)},
-    {"name": "Purple",  "bg": ( 10,  0, 18), "grid": ( 22,  0, 40), "cell": (210, 60,255)},
-    {"name": "Sepia",   "bg": (245,230,200), "grid": (210,185,148), "cell": ( 90, 55, 25)},
-    {"name": "Ocean",   "bg": (  0, 16, 32), "grid": (  0, 34, 68), "cell": (  0,175,255)},
-]
-
-#  SCREEN AND AUTOMATON CONFIGURATION
-
-pygame.display.init()
-info = pygame.display.Info()
-SCREEN_W = info.current_w
-SCREEN_H = info.current_h
-
-WIN_W   = int(SCREEN_W * 0.9)
-WIN_H   = int(SCREEN_H * 0.9)
 #  AUTOMATON CONSTANTS
- 
-
-GRID_W  = 100 # space columns (RING  / FACTOR)
-GRID_H  = 100   # space rows    (LINES / FACTOR)
-CELL_PX = max(4, WIN_W // GRID_W)      # pixels per cell
+CELL_PX = 8
 
  
 #  WINDOW LAYOUT
-PANEL_W = int(WIN_W * 0.4)
-SPACE_W = GRID_W * CELL_PX
-SPACE_H = GRID_H * CELL_PX
+#SPACE_W = GRID_W * CELL_PX
+#SPACE_H = GRID_H * CELL_PX
 PAD = 8
 
 # Panel palette
@@ -50,8 +23,6 @@ BTN_OFF_FG  = (190, 190, 200)
 BTN_ON_BG   = ( 72, 195, 105)
 BTN_ON_FG   = ( 10,  10,  10)
 BTN_HOV     = ( 75,  75,  88)
-
-
  
 #  UTILITIES
  

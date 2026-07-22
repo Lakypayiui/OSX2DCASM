@@ -19,13 +19,9 @@ class ACOSXM:
 
         # Ventana redimensionable
         self.screen: pygame.Surface = pygame.display.set_mode(
-            (config.WIN_W, config.WIN_H),
+            (0, 0),
             pygame.RESIZABLE
         )
-
-        self.clock: pygame.time.Clock = pygame.time.Clock()
-        self.current_width: int = config.WIN_W
-        self.current_height: int = config.WIN_H
 
     def run(self) -> None:
         """Starts the application by running the menu and then the simulation."""

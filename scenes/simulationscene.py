@@ -10,7 +10,6 @@ from core import config
 from core.life2dm import Life2DM
 from core.rule_matrix import RuleMatrix
 from core.kernel import Kernel
-from core.display3d import Display3D, PLATFORM
 
 from ui.panels import SimulationPanel
 
@@ -20,23 +19,7 @@ main_pid: int = int(os.environ.get('MAIN_PID', 0))
 if main_pid == 0 or os.getpid() == main_pid:
     print("SimulationScene loaded PID =", os.getpid())
 else:
-    print(f"[Child Process] SimulationScene loaded PID = {os.getpid()} (secondary)")
-    
-def open_gl_window(history: list) -> None:
-    """Launches a separate 3D OpenGL window for viewing simulation history.
-
-    Args:
-        history: List of automaton state arrays representing the evolution.
-    """
-    os.environ['MAIN_PID'] = str(os.getpid())  # force this to be considered main for 3D
-    print("open_gl_window PID =", os.getpid())
-    
-    renderer = Display3D(history)
-    if PLATFORM == "Darwin":
-        renderer.macos_3d_render()
-    else:
-        renderer.open_gl_render()
-
+    print(f"[Child Process] SimulationScene loaded PID = {os.getpid()} (secondary)") 
 
 class SimulationScene:
     """Main simulation scene managing the automaton, UI, and controllers."""
@@ -58,6 +41,7 @@ class SimulationScene:
         print("SimulationScene loaded PID =", os.getpid())
 
         self.screen: pygame.Surface = screen
+        self.width, self.height = self.screen.get_size()
 
         # World
         self.grid_width: int = width
@@ -83,7 +67,15 @@ class SimulationScene:
             "bold": pygame.font.SysFont("monospace", 14, bold=True),
             "small": pygame.font.SysFont("monospace", 14)
         }
-        self.panel: SimulationPanel = SimulationPanel(self.rule_matrix, self.kernel, self.theme, self.fonts, self.life.data_population)
+        self.panel: SimulationPanel = SimulationPanel(
+            self.rule_matrix, 
+            self.kernel, 
+            self.life,
+            self.theme, 
+            self.fonts, 
+            int(self.width * 0.4), 
+            self.height
+        )
 
         self._all_btns: list = self.panel.buttons
 
@@ -118,6 +110,7 @@ class SimulationScene:
             self.life.tick()
 
             self.panel.graph_population.set_dirty()
+            self.panel.graph_global_entropy.set_dirty()
 
             self.draw()
 
@@ -135,141 +128,19 @@ class SimulationScene:
                 if ev.key == pygame.K_ESCAPE:
                     pygame.quit()
                     sys.exit()
+            if ev.type == pygame.VIDEORESIZE:
+                self.screen = pygame.display.set_mode(
+                    (ev.w, ev.h),
+                    pygame.RESIZABLE
+                )
+                self.panel._on_resize(ev.h)
 
+            elif ev.type == pygame.WINDOWSIZECHANGED:
+                width, heigth = self.screen.get_size()
+                self.panel._on_resize(heigth)
 
             self.simulation_controller.handle_event(ev)
-            
-            # Buttons
-            for b in self._all_btns:
-
-                if b.handle_event(ev):
-
-                    self._on_btn(b)
-            
-
-    def launch_3d_view(self) -> None:
-        """Launches the 3D view in a separate process."""
-        if not self.life.history:
-            return
-
-        print(f"[3D] Launching separate process - main PID = {os.getpid()}")
-
-        from multiprocessing import Process
-
-        p = Process(
-            target=open_gl_window,
-            args=(self.life.history.copy(),),   # copy para evitar problemas
-            daemon=True
-        )
-        p.start()
-        print(f"[3D] Process launched with PID = {p.pid}")
-       
-
-    def _on_btn(self, b) -> None:
-        """Handles a button click from the simulation panel.
-
-        Args:
-            b: The button that was clicked.
-        """
-
-        d: float = self.panel.slider_density.value
-        dr: float = self.panel.slider_rule_density.value
-
-        if b is self.panel.btn_random_config:
-
-            self.life.random_fill(d)
-
-        elif b is self.panel.btn_random_rule:
-
-            self.rule_matrix.randomize(dr)
-
-            self.life.sync_rule_from_matrix(
-                self.rule_matrix.data
-            )
-
-        elif b is self.panel.btn_step:
-            self.panel.btn_pause.active = True
-            self.panel.btn_evolution.active = False
-            self.panel.btn_pause.label = "Resume"
-            self.life.running = False
-            self.life.step()
-
-        elif b is self.panel.btn_clear_rule:
-
-            self.rule_matrix.clear()
-
-            self.life.rule[:] = 0
-
-            self.kernel.clear()
-
-        elif b is self.panel.btn_evolution:
-            self.life.running = b.active
-            if b.active:
-                self.panel.btn_evolution.label = "Stop"
-            else:
-                self.panel.btn_evolution.label = "Start"
-                self.panel.btn_pause.active = False
-                self.panel.btn_pause.label = "Pause"
-                self.life.reset()
-
-        elif b is self.panel.btn_pause:
-            self.life.running = not b.active
-            if b.active:
-                self.panel.btn_pause.label = "Resume"
-            else:
-                self.panel.btn_pause.label = "Pause"
-
-        elif b is self.panel.btn_clear_view:
-            self.panel.btn_evolution.active = False
-            self.panel.btn_evolution.label = "Start"
-            self.panel.btn_pause.active = False
-            self.panel.btn_pause.label = "Pause"
-
-            self.life.full_reset()
-
-        elif b is self.panel.btn_add_kernel:
-
-            rule: np.ndarray = self.kernel.apply_to_matrix(
-                self.rule_matrix
-            )
-
-            self.life.rule = rule
-
-        elif b is self.panel.btn_load_rule:
-            self.popup_controller.push(self.popup_controller.load_rule)
-
-        elif b is self.panel.btn_save_rule:
-            self.popup_controller.save_rule.rule = self.rule_matrix.to_rule_array()
-            self.popup_controller.push(self.popup_controller.save_rule)
-
-        elif b is self.panel.btn_save:
-            self.popup_controller.push(self.popup_controller.save_state)
-
-        elif b is self.panel.btn_load:
-            self.popup_controller.push(self.popup_controller.load_state)
-
-        elif b is self.panel.btn_view_3d:
-            if self.life.history:
-                self.launch_3d_view()
-
-        elif b is self.panel.btn_hide_panel:
-
-            self.panel.visible = not self.panel.visible
-
-            if self.panel.visible:
-
-                self.panel.btn_hide_panel.label = "<<"
-
-                self.panel.btn_hide_panel.rect.x = (
-                    config.PANEL_W - config.PAD - 40
-                )
-
-            else:
-
-                self.panel.btn_hide_panel.label = ">>"
-
-                self.panel.btn_hide_panel.rect.x = config.PAD
-        
+               
 
     def draw(self) -> None:
         """Draws the complete simulation screen."""

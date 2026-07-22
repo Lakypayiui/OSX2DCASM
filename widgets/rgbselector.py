@@ -3,8 +3,10 @@ from typing import Optional
 
 from core.config import *
 
+from widgets.interactive_widget import InteractiveWidget
 
-class RGBSelector:
+
+class RGBSelector(InteractiveWidget):
     """A widget with three sliders for selecting an RGB color."""
 
     def __init__(

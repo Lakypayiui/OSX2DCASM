@@ -18,6 +18,7 @@ class MenuScene:
         """
 
         self.screen: pygame.Surface = screen
+        self.width, self.height = self.screen.get_size()
         self.clock: pygame.time.Clock = pygame.time.Clock()
 
         # Fonts
@@ -27,7 +28,7 @@ class MenuScene:
         self.fsmall: pygame.font.Font = pygame.font.SysFont("monospace", 14)
 
         # Inputs
-        center_x: int = config.WIN_W // 2
+        center_x: int = self.width // 2
 
         self.input_width: InputBox = InputBox(
             (center_x - 110, 270, 220, 42),
@@ -51,7 +52,7 @@ class MenuScene:
         )
 
         self.btn_settings: Button = Button(
-            (config.WIN_W - 140, config.WIN_H - 60, 110, 32),
+            (self.width- 140, self.height- 60, 110, 32),
             "Settings",
             toggle=False,
             bg=(55, 55, 70),
@@ -66,8 +67,8 @@ class MenuScene:
 
         for _ in range(140):
             self.bg_cells.append({
-                "x": random.randint(0, config.WIN_W),
-                "y": random.randint(0, config.WIN_H),
+                "x": random.randint(0, self.width),
+                "y": random.randint(0, self.height),
                 "size": random.randint(2, 6),
                 "speed": random.uniform(0.1, 0.5),
                 "alpha": random.randint(40, 120)
@@ -109,6 +110,16 @@ class MenuScene:
                     pygame.quit()
                     sys.exit()
 
+            if ev.type == pygame.VIDEORESIZE:
+                self.screen = pygame.display.set_mode(
+                    (ev.w, ev.h),
+                    pygame.RESIZABLE
+                )
+                self._on_resize(ev.w, ev.h)
+
+            elif ev.type == pygame.WINDOWSIZECHANGED:
+                self._on_resize(*self.screen.get_size())
+
             self.input_width.handle_event(ev)
             self.input_height.handle_event(ev)
 
@@ -129,9 +140,9 @@ class MenuScene:
 
             c["y"] += c["speed"]
 
-            if c["y"] > config.WIN_H:
+            if c["y"] > self.height:
                 c["y"] = -10
-                c["x"] = random.randint(0, config.WIN_W)
+                c["x"] = random.randint(0, self.width)
 
     def draw(self) -> None:
         """Draws the complete menu screen."""
@@ -146,6 +157,24 @@ class MenuScene:
 
         pygame.display.flip()
 
+    def _on_resize(self, width: int, height: int) -> None:
+        """Repositions widgets after the window size changes."""
+
+        self.width = width
+        self.height = height
+
+        center_x = width // 2
+
+        self.input_width.rect.topleft = (center_x - 110, 270)
+        self.input_height.rect.topleft = (center_x - 110, 340)
+
+        self.btn_create.rect.topleft = (center_x - 110, 430)
+
+        self.btn_settings.rect.topleft = (
+            width - 140,
+            height - 60
+        )
+
     def _draw_background(self) -> None:
         """Draws the animated background grid and floating cells."""
 
@@ -154,20 +183,21 @@ class MenuScene:
 
         spacing: int = 40
 
-        for x in range(0, config.WIN_W, spacing):
+
+        for x in range(0, self.width, spacing):
             pygame.draw.line(
                 self.screen,
                 grid_color,
                 (x, 0),
-                (x, config.WIN_H)
+                (x, self.height)
             )
 
-        for y in range(0, config.WIN_H, spacing):
+        for y in range(0, self.height, spacing):
             pygame.draw.line(
                 self.screen,
                 grid_color,
                 (0, y),
-                (config.WIN_W, y)
+                (self.width, y)
             )
 
         # Animated cells
@@ -183,7 +213,7 @@ class MenuScene:
         """Draws the main menu panel with title, inputs, and buttons."""
 
         panel: pygame.Rect = pygame.Rect(
-            config.WIN_W // 2 - 220,
+            self.width // 2 - 220,
             120,
             440,
             420
@@ -215,7 +245,7 @@ class MenuScene:
         self.screen.blit(
             title,
             (
-                config.WIN_W // 2 - title.get_width() // 2,
+                self.width // 2 - title.get_width() // 2,
                 150
             )
         )
@@ -230,7 +260,7 @@ class MenuScene:
         self.screen.blit(
             sub,
             (
-                config.WIN_W // 2 - sub.get_width() // 2,
+                self.width // 2 - sub.get_width() // 2,
                 205
             )
         )
@@ -248,8 +278,8 @@ class MenuScene:
             (210, 210, 220)
         )
 
-        self.screen.blit(wtxt, (config.WIN_W // 2 - 110, 245))
-        self.screen.blit(htxt, (config.WIN_W // 2 - 110, 315))
+        self.screen.blit(wtxt, (self.width // 2 - 110, 245))
+        self.screen.blit(htxt, (self.width // 2 - 110, 315))
 
         # Inputs
         self.input_width.draw(self.screen, self.ftext)
@@ -263,7 +293,7 @@ class MenuScene:
         """Draws the settings popup (placeholder)."""
 
         overlay: pygame.Surface = pygame.Surface(
-            (config.WIN_W, config.WIN_H),
+            (self.width, self.height),
             pygame.SRCALPHA
         )
 
@@ -272,8 +302,8 @@ class MenuScene:
         self.screen.blit(overlay, (0, 0))
 
         popup: pygame.Rect = pygame.Rect(
-            config.WIN_W // 2 - 180,
-            config.WIN_H // 2 - 120,
+            self.width // 2 - 180,
+            self.height // 2 - 120,
             360,
             240
         )

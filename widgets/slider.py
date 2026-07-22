@@ -3,8 +3,10 @@ from typing import Optional
 
 from core.config import *
 
+from widgets.interactive_widget import InteractiveWidget
 
-class Slider:
+
+class Slider(InteractiveWidget):
     """A draggable horizontal slider widget for selecting numerical values."""
 
     def __init__(

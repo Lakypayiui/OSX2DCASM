@@ -34,6 +34,7 @@ class PopulationControls:
         self,
         create_button: Callable[..., Button],
         buttons_list: list[Button],
+        width: int
     ) -> None:
         """Initializes population controls.
 
@@ -42,7 +43,10 @@ class PopulationControls:
                 :meth:`SimulationPanel._create_button`.
             buttons_list: The panel's global button list that every created
                 button is appended to (for hit-testing).
+            width: width of the panel.
         """
+        self.width = width
+
         self._create_button = create_button
         self._buttons_list = buttons_list
 
@@ -80,7 +84,7 @@ class PopulationControls:
         y += 13
 
         self.slider_density = Slider(
-            (config.PAD, y, config.PANEL_W - 65, 12),
+            (config.PAD, y, self.width - 65, 12),
             value=0.5,
         )
 
@@ -113,7 +117,7 @@ class PopulationControls:
             surface,
             config.P_BORDER,
             (config.PAD, self.y_population_hdr + 16),
-            (config.PANEL_W - config.PAD, self.y_population_hdr + 16),
+            (self.width - config.PAD, self.y_population_hdr + 16),
         )
 
         # --- Buttons ---

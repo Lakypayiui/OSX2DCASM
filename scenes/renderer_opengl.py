@@ -34,7 +34,7 @@ from OpenGL.GL import (
 )
 
 if TYPE_CHECKING:
-    from core.display3d import Display3D
+    from scenes.display3dscene import Display3DScene
 
 
 VERT_GLSL = """\
@@ -175,14 +175,14 @@ def _build_vao(
     return vao, len(verts)
 
 
-def run_opengl_renderer(dsp: Display3D) -> None:
-    """Launch the OpenGL-based 3D renderer for the given Display3D instance.
+def run_opengl_renderer(dsp: "Display3DScene") -> None:
+    """Launch the OpenGL-based 3D renderer for the given Display3DScene instance.
 
-    Opens a Pygame window with an OpenGL 4.1 Core context and enters the
-    render loop.  All shared geometry / math methods are called on *dsp*.
+    Opens a Pygame window backed by OpenGL 4.1 Core and enters the render
+    loop.  All shared geometry / math methods are called on *dsp*.
 
     Args:
-        dsp: Fully-initialised ``Display3D`` instance containing grid data,
+        dsp: Fully-initialised ``Display3DScene`` instance containing grid data,
             camera anchor points, and shared helper methods.
 
     Note:

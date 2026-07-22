@@ -3,8 +3,10 @@ from typing import Optional
 
 from core.config import *
 
+from widgets.interactive_widget import InteractiveWidget
 
-class Button:
+
+class Button(InteractiveWidget):
     """A clickable UI button with optional toggle behavior."""
 
     def __init__(

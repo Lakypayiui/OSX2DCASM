@@ -1,3 +1,4 @@
+import math
 import time
 from core import config
 import pygame
@@ -27,6 +28,7 @@ class Life2DM:
         self.running: bool = False
         self.history: list[np.ndarray] = []
         self.data_population = {'time': [], 'values': []}
+        self.data_global_entropy = {'time': [], 'values': []}
      
     def sync_rule_from_matrix(self, matrix_data: list[list[int]]) -> None:
         """Synchronizes the internal rule array from a 16x32 matrix.
@@ -69,8 +71,21 @@ class Life2DM:
         self.state = self.rule[idx].astype(np.uint8)
         self.gen  += 1
         self.history.append(np.rot90(self.state.copy(), -1))
+
+        population = self.state.sum()
+        
+
         self.data_population['time'].append(self.gen)
-        self.data_population['values'].append(self.state.sum())
+        self.data_population['values'].append(population)
+
+        p = population / self.state.size 
+        if p == 0:
+            global_entropy=0
+        else:
+            global_entropy = -(p * math.log2(p)  + (1 - p) *  math.log2(1 - p))
+
+        self.data_global_entropy['time'].append(self.gen)
+        self.data_global_entropy['values'].append(global_entropy)
 
     def tick(self) -> None:
         """Advances the automaton if it is currently running."""
@@ -84,6 +99,8 @@ class Life2DM:
         self.history = []
         self.data_population['time'] = []
         self.data_population['values'] = []
+        self.data_global_entropy['time'] = []
+        self.data_global_entropy['values'] = []
         self.running = False
 
     def full_reset(self) -> None:

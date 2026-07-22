@@ -18,7 +18,7 @@ IS_SILICON  = IS_MACOS and (platform.machine() == "arm64")
 
 EPS = 1e-6
 
-class Display3D:
+class Display3DScene:
     
     def __init__(self, history, width=1000, height=800):
         self.width = width
@@ -226,16 +226,16 @@ class Display3D:
     def macos_3d_render(self) -> None:
         """Launch the Metal-based 3D renderer (macOS only).
 
-        Delegates to :func:`core.renderer_metal.run_metal_renderer`.
+        Delegates to :func:`scenes.renderer_metal.run_metal_renderer`.
         """
-        from core.renderer_metal import run_metal_renderer
+        from scenes.renderer_metal import run_metal_renderer
         run_metal_renderer(self)
 
     def open_gl_render(self) -> None:
         """Launch the OpenGL-based 3D renderer.
 
-        Delegates to :func:`core.renderer_opengl.run_opengl_renderer`.
+        Delegates to :func:`scenes.renderer_opengl.run_opengl_renderer`.
         """
-        from core.renderer_opengl import run_opengl_renderer
+        from scenes.renderer_opengl import run_opengl_renderer
         run_opengl_renderer(self)
 

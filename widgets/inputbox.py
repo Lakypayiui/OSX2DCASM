@@ -1,8 +1,10 @@
 import pygame
 from typing import Optional
 
+from widgets.interactive_widget import InteractiveWidget
 
-class InputBox:
+
+class InputBox(InteractiveWidget):
     """A single-line text input widget for keyboard entry."""
 
     def __init__(

@@ -12,10 +12,10 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 if TYPE_CHECKING:
-    from core.display3d import Display3D
+    from scenes.display3dscene import Display3DScene
 
 
-def run_metal_renderer(dsp: "Display3D") -> None:
+def run_metal_renderer(dsp: "Display3DScene") -> None:
     """Launch the Metal-based 3D renderer for the given Display3D instance.
 
     Opens a native GLFW+Metal window and enters the render loop.  All shared

@@ -7,7 +7,6 @@ from core.config import (
     BTN_OFF_FG,
     BTN_ON_BG,
     BTN_ON_FG,
-    PANEL_W,
 )
 from core.rule_matrix import RuleMatrix
 
@@ -18,15 +17,12 @@ class RulePanel:
     ROWS = 16
     COLS = 32
 
-    CELL_WIDTH = PANEL_W * 0.9 // COLS
-    CELL_HEIGHT = CELL_WIDTH
-    CELL_MARGIN = int(CELL_WIDTH * 0.1)
-
     def __init__(
         self,
         rule_matrix: RuleMatrix,
         x: int,
         y: int,
+        width: int
     ) -> None:
         """Initializes the rule matrix panel.
 
@@ -34,6 +30,7 @@ class RulePanel:
             rule_matrix: Rule matrix model displayed by the panel.
             x: X-coordinate of the panel.
             y: Y-coordinate of the panel.
+            width: width of the panel.
         """
 
         self.rule_matrix = rule_matrix
@@ -42,6 +39,10 @@ class RulePanel:
 
         self.x = x
         self.y = y
+
+        self.width = width
+        self.cell_size = self.width // self.COLS
+        self.cell_margin = int(self.cell_size * 0.1)
 
         self.rects: list[list[pygame.Rect]] = (
             self._build_rects()
@@ -60,15 +61,15 @@ class RulePanel:
             [
                 pygame.Rect(
                     self.x + col * (
-                        self.CELL_WIDTH +
-                        self.CELL_MARGIN
+                        self.cell_size +
+                        self.cell_margin
                     ),
                     self.y + row * (
-                        self.CELL_HEIGHT +
-                        self.CELL_MARGIN
+                        self.cell_size +
+                        self.cell_margin
                     ),
-                    self.CELL_WIDTH,
-                    self.CELL_HEIGHT,
+                    self.cell_size,
+                    self.cell_size,
                 )
                 for col in range(self.COLS)
             ]
@@ -80,8 +81,8 @@ class RulePanel:
         """Returns the total panel width in pixels."""
 
         return self.COLS * (
-            self.CELL_WIDTH +
-            self.CELL_MARGIN
+            self.cell_size +
+            self.cell_margin
         )
 
     @property
@@ -89,8 +90,8 @@ class RulePanel:
         """Returns the total panel height in pixels."""
 
         return self.ROWS * (
-            self.CELL_HEIGHT +
-            self.CELL_MARGIN
+            self.cell_size +
+            self.cell_margin
         )
 
     def handle_click(

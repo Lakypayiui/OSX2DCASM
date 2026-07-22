@@ -49,6 +49,7 @@ class CameraController:
         event: pygame.event.Event,
         panel_visible: bool,
         popup_open: bool,
+        panel_width: int
     ) -> None:
         """Processes a pygame event for camera control.
 
@@ -66,7 +67,7 @@ class CameraController:
 
             mx, _ = pygame.mouse.get_pos()
 
-            if panel_visible and mx < config.PANEL_W:
+            if panel_visible and mx < panel_width:
                 return
 
             self._zoom(event.y)
