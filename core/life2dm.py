@@ -1,5 +1,6 @@
 import math
 import time
+from typing import Counter
 from core import config
 import pygame
 import numpy as np
@@ -29,6 +30,7 @@ class Life2DM:
         self.history: list[np.ndarray] = []
         self.data_population = {'time': [], 'values': []}
         self.data_global_entropy = {'time': [], 'values': []}
+        self.data_block_entropy = {'time': [], 'values': []}
      
     def sync_rule_from_matrix(self, matrix_data: list[list[int]]) -> None:
         """Synchronizes the internal rule array from a 16x32 matrix.
@@ -73,7 +75,6 @@ class Life2DM:
         self.history.append(np.rot90(self.state.copy(), -1))
 
         population = self.state.sum()
-        
 
         self.data_population['time'].append(self.gen)
         self.data_population['values'].append(population)
@@ -87,6 +88,29 @@ class Life2DM:
         self.data_global_entropy['time'].append(self.gen)
         self.data_global_entropy['values'].append(global_entropy)
 
+        self.data_block_entropy['time'].append(self.gen)
+        self.data_block_entropy['values'].append(self.block_entropy(self.state))
+
+    def block_entropy(self, grid):
+        a = grid[:-1, :-1]
+        b = grid[:-1, 1:]
+        c = grid[1:, :-1]
+        d = grid[1:, 1:]
+
+        codes = (
+            a
+            | (b << 1)
+            | (c << 2)
+            | (d << 3)
+        )
+
+        counts = np.bincount(codes.ravel(), minlength=16)
+
+        probs = counts[counts > 0]
+        probs = probs / probs.sum()
+
+        return -(probs * np.log2(probs)).sum()
+
     def tick(self) -> None:
         """Advances the automaton if it is currently running."""
         if self.running:
@@ -97,10 +121,9 @@ class Life2DM:
         """Resets generation counter, history, and stops the automaton."""
         self.gen   = 0
         self.history = []
-        self.data_population['time'] = []
-        self.data_population['values'] = []
-        self.data_global_entropy['time'] = []
-        self.data_global_entropy['values'] = []
+        for data in [self.data_population, self.data_global_entropy, self.data_block_entropy]:
+            data['time'] = []
+            data['values'] = []
         self.running = False
 
     def full_reset(self) -> None:

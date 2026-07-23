@@ -25,8 +25,9 @@ class ACOSXM:
 
     def run(self) -> None:
         """Starts the application by running the menu and then the simulation."""
-        menu = MenuScene(self.screen)
-        width, height = menu.run()
+        while True:
+            menu = MenuScene(self.screen)
+            width, height = menu.run()
 
-        sim = SimulationScene(self.screen, width, height)
-        sim.run()
+            sim = SimulationScene(self.screen, width, height)
+            sim.run()

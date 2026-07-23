@@ -9,6 +9,7 @@ from widgets.button import Button
 from widgets.graph import GraphWidget
 from ui.panels.color_controls import ColorControls
 from ui.panels.evolution_controls import EvolutionControls
+from ui.panels.graph_controls import GraphControls
 from ui.panels.info_controls import InfoControls
 from ui.panels.population_controls import PopulationControls
 from ui.panels.rule_controls import RuleControls
@@ -81,8 +82,17 @@ class SimulationPanel:
     def _create_hide_button(self) -> None:
         self.btn_hide_panel = Button(
             (self.width - config.PAD - 40, config.PAD, 40, 20),
-            "<<", self.font_bold, toggle=False,
+            "", self.font_bold, toggle=False,
             bg=config.BTN_OFF_BG, bg_on=config.BTN_ON_BG,
+            icon = pygame.image.load("assets/icons/double_arrow_left.png").convert_alpha()
+        )
+
+    def _create_return_button(self) -> None:
+        self.btn_return_panel = Button(
+            (config.PAD, config.PAD, 40, 20),
+            "", self.font_bold, toggle=False,
+            bg=config.BTN_OFF_BG, bg_on=config.BTN_ON_BG,
+            icon = pygame.image.load("assets/icons/home.png").convert_alpha()
         )
 
     # ------------------------------------------------------------------
@@ -91,13 +101,14 @@ class SimulationPanel:
 
     def _build_layout(self) -> None:
         self._create_hide_button()
+        self._create_return_button()
 
         # --- Rule sub-panel ---
         self.rule_controls = RuleControls(
             self.rule_matrix, self.kernel, self._create_button,
             self.buttons, self.width, self.fonts,
         )
-        y = self.rule_controls._create_rule_section(self.btn_hide_panel.rect.height + config.PAD)
+        y = self.rule_controls._create_rule_section(self.btn_hide_panel.rect.height + config.PAD * 2)
 
         # --- Population sub-panel ---
         self.population_controls = PopulationControls(
@@ -119,21 +130,11 @@ class SimulationPanel:
         self.info_controls = InfoControls(self.life, self.width, self.fonts)
         y = self.info_controls._create_info_section(y)
 
-        # --- Graph widgets ---
-        self.graph_population = GraphWidget(
-            rect=(config.PAD, y, self.width - config.PAD * 2, 400),
-            data_ref=self.life.data_population, font=self.font_small,
-            title="Population", ylabel="Alive Cells", line_color=(255, 120, 80),
-        )
-        y += 420
+        # --- Graph sub-panel ---
+        self.graph_controls = GraphControls(self.life, self.width, self.fonts)
+        y = self.graph_controls._create_graph_section(y)
 
-        self.graph_global_entropy = GraphWidget(
-            rect=(config.PAD, y, self.width - config.PAD * 2, 400),
-            data_ref=self.life.data_global_entropy, font=self.font_small,
-            title="Global Entropy", ylabel="H Entropy (bits)", line_color=(255, 120, 80),
-        )
-
-        self.content_height = y + 440
+        self.content_height = y + 40
         self.content_surface = pygame.Surface((self.width, self.content_height))
         self.content_surface.fill(config.P_BG)
 
@@ -141,6 +142,7 @@ class SimulationPanel:
         self._copy_population_attrs()
         self._copy_evolution_attrs()
         self._copy_color_attrs()
+        self._copy_graph_attrs()
 
     # ------------------------------------------------------------------
     # Attribute forwarding
@@ -189,6 +191,15 @@ class SimulationPanel:
         self.bg_color_selectors = cc.bg_color_selectors
         self.color_accordion = cc.color_accordion
 
+    def _copy_graph_attrs(self) -> None:
+        """Copies graph-control attributes to ``self`` for backward compat."""
+        gc = self.graph_controls
+        self.graph_population = gc.graph_population
+        self.graph_global_entropy = gc.graph_global_entropy
+        self.graph_block_entropy = gc.graph_block_entropy
+        self.graphs_accordion = gc._graphs_accordion
+        self.graph_sub_accordions = [gc._population_accordion, gc._entropy_accordion, gc._block_accordion]
+
     # ------------------------------------------------------------------
     # Resize / scroll
     # ------------------------------------------------------------------
@@ -198,7 +209,7 @@ class SimulationPanel:
 
     def _update_layout(self) -> None:
 
-        y = self.rule_controls.update_layout(self.btn_hide_panel.rect.height + config.PAD)
+        y = self.rule_controls.update_layout(self.btn_hide_panel.rect.height + config.PAD * 2)
 
         # --- Population sub-panel ---
         y = self.population_controls.update_layout(y)
@@ -211,21 +222,10 @@ class SimulationPanel:
 
         y = self.info_controls.update_layout(y)
 
-        # --- Graph widgets ---
-        self.graph_population = GraphWidget(
-            rect=(config.PAD, y, self.width - config.PAD * 2, 400),
-            data_ref=self.life.data_population, font=self.font_small,
-            title="Population", ylabel="Alive Cells", line_color=(255, 120, 80),
-        )
-        y += 420
+        # --- Graph sub-panel ---
+        y = self.graph_controls.update_layout(y)
 
-        self.graph_global_entropy = GraphWidget(
-            rect=(config.PAD, y, self.width - config.PAD * 2, 400),
-            data_ref=self.life.data_global_entropy, font=self.font_small,
-            title="Global Entropy", ylabel="H Entropy (bits)", line_color=(255, 120, 80),
-        )
-
-        self.content_height = y + 440
+        self.content_height = y + 40
         self.content_surface = pygame.Surface((self.width, self.content_height))
         self.content_surface.fill(config.P_BG)
 
@@ -233,6 +233,7 @@ class SimulationPanel:
         self._copy_population_attrs()
         self._copy_evolution_attrs()
         self._copy_color_attrs()
+        self._copy_graph_attrs()
 
     def _clamp_scroll(self) -> None:
         max_scroll = max(0, self.content_height - self.height)
@@ -244,6 +245,7 @@ class SimulationPanel:
 
     def draw(self, screen: pygame.Surface) -> None:
         if not self.visible:
+            self.btn_return_panel.draw(screen)
             self.btn_hide_panel.draw(screen)
             return
 
@@ -254,15 +256,14 @@ class SimulationPanel:
         self.evolution_controls.draw(self.content_surface)
         self.color_controls.draw(self.content_surface)
         self.info_controls.draw(self.content_surface)
-
-        self.graph_population.draw(self.content_surface)
-        self.graph_global_entropy.draw(self.content_surface)
+        self.graph_controls.draw(self.content_surface)
 
         pygame.draw.rect(
             self.content_surface, config.P_BORDER,
             (0, 0, self.width, self.content_height), 1,
         )
         self.btn_hide_panel.draw(self.content_surface)
+        self.btn_return_panel.draw(self.content_surface)
 
         self.surface.fill(config.P_BG)
         visible_rect = pygame.Rect(0, self.scroll_y, self.width, self.height)

@@ -69,7 +69,7 @@ class SimulationController:
         self.cur_cy: int = 0
         
     
-    def handle_event(self, event: pygame.event.Event) -> None:
+    def handle_event(self, event: pygame.event.Event) -> True:
         """Dispatches a pygame event to the appropriate handler.
 
         Args:
@@ -80,7 +80,7 @@ class SimulationController:
 
         self._handle_popups(event)
 
-        self._handle_panel(event)
+        return self._handle_panel(event)
 
 
     def _handle_mouse(self, event: pygame.event.Event) -> None:
@@ -146,7 +146,7 @@ class SimulationController:
                 self.cur_cx = cx
                 self.cur_cy = cy
 
-    def _handle_panel(self, event: pygame.event.Event) -> None:
+    def _handle_panel(self, event: pygame.event.Event) -> bool:
         """Processes events for sliders and color selectors.
 
         Args:
@@ -159,6 +159,9 @@ class SimulationController:
                 self.panel._clamp_scroll()
 
         self._handle_panel_toggle(event)
+
+        if self.panel.btn_return_panel.handle_event(event):
+            return True
 
         if self.panel.visible:
             
@@ -177,6 +180,13 @@ class SimulationController:
 
             if self.panel.color_accordion.handle_event(event):
                 self.panel._update_layout()
+            
+            if self.panel.graphs_accordion.handle_event(event):
+                self.panel._update_layout()
+
+            for accordion in self.panel.graph_sub_accordions:
+                if accordion.handle_event(event):
+                    self.panel._update_layout()
 
             # Kernel
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -234,13 +244,15 @@ class SimulationController:
         self.panel.visible = not self.panel.visible
 
         if self.panel.visible:
-            self.panel.btn_hide_panel.label = "<<"
+            self.panel.btn_hide_panel.icon = pygame.image.load("assets/icons/double_arrow_left.png").convert_alpha()
             self.panel.btn_hide_panel.rect.x = (
                 self.panel.width - config.PAD - 40
             )
+            self.panel.btn_return_panel.rect.y = config.PAD
         else:
-            self.panel.btn_hide_panel.label = ">>"
+            self.panel.btn_hide_panel.icon = pygame.image.load("assets/icons/double_arrow_rigth.png").convert_alpha()
             self.panel.btn_hide_panel.rect.x = config.PAD
+            self.panel.btn_return_panel.rect.y = config.PAD * 2 + self.panel.btn_hide_panel.rect.height 
 
     def _on_btn(self, b) -> None:
         """Handles a button click from the simulation panel.

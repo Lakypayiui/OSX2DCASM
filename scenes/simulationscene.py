@@ -100,21 +100,23 @@ class SimulationScene:
             self.grid_height
         )
 
-    def run(self) -> None:
+    def run(self) -> bool:
         """Runs the main simulation loop."""
 
         while self.running:
 
-            self.events()
+            if self.events():
+                self.running = False
 
             self.life.tick()
 
             self.panel.graph_population.set_dirty()
             self.panel.graph_global_entropy.set_dirty()
+            self.panel.graph_block_entropy.set_dirty()
 
             self.draw()
 
-    def events(self) -> None:
+    def events(self) -> bool:
         """Processes pygame events for the simulation."""
 
         for ev in pygame.event.get():
@@ -139,7 +141,8 @@ class SimulationScene:
                 width, heigth = self.screen.get_size()
                 self.panel._on_resize(heigth)
 
-            self.simulation_controller.handle_event(ev)
+            if self.simulation_controller.handle_event(ev):
+                return True
                
 
     def draw(self) -> None:
