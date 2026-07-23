@@ -7,3 +7,4 @@ from widgets.popup import Popup
 from widgets.rgbselector import RGBSelector
 from widgets.graph import GraphWidget
 from widgets.accordion import Accordion
+from widgets.kernel_widget import KernelWidget

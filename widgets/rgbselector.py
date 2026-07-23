@@ -12,15 +12,18 @@ class RGBSelector(BaseWidget):
     def __init__(
         self,
         rect: tuple[int, int, int, int],
+        font: pygame.font.Font,
         initial: tuple[int, int, int] = (128, 128, 128),
     ) -> None:
         """Initializes the RGB selector.
 
         Args:
             rect: Position and size as (x, y, width, height).
+            font: Font used to render labels.
             initial: Initial RGB color tuple.
         """
         self.rect: pygame.Rect = pygame.Rect(rect)
+        self.font: pygame.font.Font = font
 
         # Sub-rects para sliders
         h: int = self.rect.height // 4
@@ -119,21 +122,16 @@ class RGBSelector(BaseWidget):
         t: pygame.Surface = font.render(txt, True, P_FG)
         surf.blit(t, (rect.x + 6, rect.y + rect.height // 2 - t.get_height() // 2))
 
-    def draw(
-        self,
-        surf: pygame.Surface,
-        font: pygame.font.Font,
-    ) -> None:
+    def draw(self, surf: pygame.Surface) -> None:
         """Draws the RGB selector onto a surface.
 
         Args:
             surf: Target surface to draw on.
-            font: Font used to render labels.
         """
         # Sliders
-        self.draw_slider(surf, self.r_rect, self.r, (255, 0, 0), "R", font)
-        self.draw_slider(surf, self.g_rect, self.g, (0, 255, 0), "G", font)
-        self.draw_slider(surf, self.b_rect, self.b, (0, 0, 255), "B", font)
+        self.draw_slider(surf, self.r_rect, self.r, (255, 0, 0), "R", self.font)
+        self.draw_slider(surf, self.g_rect, self.g, (0, 255, 0), "G", self.font)
+        self.draw_slider(surf, self.b_rect, self.b, (0, 0, 255), "B", self.font)
 
         # Preview color
         color: tuple[int, int, int] = self.get_color()
@@ -142,6 +140,6 @@ class RGBSelector(BaseWidget):
 
         # Texto del color
         txt: str = f"RGB{color}"
-        t: pygame.Surface = font.render(txt, True, P_FG)
+        t: pygame.Surface = self.font.render(txt, True, P_FG)
         surf.blit(t, (self.preview_rect.centerx - t.get_width() // 2,
                       self.preview_rect.centery - t.get_height() // 2))

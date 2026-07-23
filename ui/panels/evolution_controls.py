@@ -7,6 +7,7 @@ from typing import Callable
 import pygame
 
 from core import config
+from widgets.accordion import Accordion
 from widgets.button import Button
 from widgets.label import Label
 
@@ -20,6 +21,7 @@ class EvolutionControls:
 
     Attributes:
         y_evolution_hdr: Y-position of the "Evolution" section header.
+        _height: Total height of this sub-panel.
         btn_evolution: Start/Stop toggle button.
         btn_step: Single-step button.
         btn_pause: Pause/Resume toggle button.
@@ -28,25 +30,22 @@ class EvolutionControls:
         btn_view_3d: Open 3D view button.
     """
 
+    _BUTTON_H = 22
+    _BUTTON_GAP = 4
+
     def __init__(
         self,
         create_button: Callable[..., Button],
         buttons_list: list[Button],
-        width: int
+        width: int,
+        fonts: dict[str, pygame.font.Font],
     ) -> None:
-        """Initializes evolution controls.
-
-        Args:
-            create_button: Factory callable with the same signature as
-                :meth:`SimulationPanel._create_button`.
-            buttons_list: The panel's global button list that every created
-                button is appended to (for hit-testing).
-            width: width of the panel.
-        """
         self.width = width
+        self.fonts = fonts
         self._create_button = create_button
         self._buttons_list = buttons_list
 
+        self._height: int = 0
         self.y_evolution_hdr: int = 0
 
         self.btn_evolution: Button | None = None
@@ -55,101 +54,74 @@ class EvolutionControls:
         self.btn_save: Button | None = None
         self.btn_load: Button | None = None
         self.btn_view_3d: Button | None = None
-
         self._header_label: Label | None = None
 
+    # ------------------------------------------------------------------
+    # Layout
+    # ------------------------------------------------------------------
+
     def _create_evolution_section(self, y: int) -> int:
-        """Builds the evolution control buttons at the given y offset.
+        """Build widgets at *y* and return the next free y."""
+        return self.update_layout(y, True)
+
+    def update_layout(self, y: int, create: bool = False) -> int:
+        """Reposition all widgets starting at *y*, recalculate height and return the next free y.
 
         Args:
-            y: Starting vertical position (pixels from top of panel).
-
-        Returns:
-            The next available y position after the section.
+            y: Top-edge y-coordinate for the section header.
         """
+        start_y = y
         self.y_evolution_hdr = y
 
-        self._header_label = Label(
-            (config.PAD, y), "Evolution", config.P_FG
+        self.evolution_accordion = Accordion(
+            rect=pygame.Rect(config.PAD, y, self.width - config.PAD * 2, 40),
+            label="Evolution",
+            font=self.fonts["bold"],
+            widgets=[],
+            expanded=False if create else self.evolution_accordion.expanded,
         )
 
-        y += 25
+        y += 50
 
-        self.btn_evolution = self._create_button(
-            "Start", 0, y, toggle=True, bg=(45, 120, 60)
-        )
+        self.btn_evolution = self._create_button("Start", 0, y, toggle=True, bg=(45, 120, 60))
         self._buttons_list.append(self.btn_evolution)
+        self.evolution_accordion.add_widget(self.btn_evolution)
 
         self.btn_step = self._create_button("Step", 1, y)
         self._buttons_list.append(self.btn_step)
-
-        y += self._button_h() + self._button_gap()
+        self.evolution_accordion.add_widget(self.btn_step)
+        y += self._BUTTON_H + self._BUTTON_GAP
 
         self.btn_pause = self._create_button("Pause", 0, y, toggle=True)
         self._buttons_list.append(self.btn_pause)
+        self.evolution_accordion.add_widget(self.btn_pause)
 
         self.btn_view_3d = self._create_button("3D View", 1, y)
         self._buttons_list.append(self.btn_view_3d)
-
-        y += self._button_h() + self._button_gap()
+        self.evolution_accordion.add_widget(self.btn_view_3d)
+        y += self._BUTTON_H + self._BUTTON_GAP
 
         self.btn_save = self._create_button("Save", 0, y)
         self._buttons_list.append(self.btn_save)
+        self.evolution_accordion.add_widget(self.btn_save)
 
         self.btn_load = self._create_button("Load", 1, y)
         self._buttons_list.append(self.btn_load)
+        self.evolution_accordion.add_widget(self.btn_load)
 
-        y += 40
+        self._height = self._calc_height()
 
-        return y
+        return start_y + self._height
 
-    def draw(
-        self,
-        surface: pygame.Surface,
-        fonts: dict[str, pygame.font.Font],
-    ) -> None:
-        """Draws the evolution section onto *surface*.
-
-        Args:
-            surface: Target surface to render onto (the panel surface).
-            fonts: Mapping of font names (``"bold"``, ``"medium"``, …)
-                to :class:`pygame.font.Font` instances.
-        """
-        # --- Section header ---
-        assert self._header_label is not None
-        self._header_label.draw(surface, fonts["bold"])
-
-        pygame.draw.line(
-            surface,
-            config.P_BORDER,
-            (config.PAD, self.y_evolution_hdr + 16),
-            (self.width - config.PAD, self.y_evolution_hdr + 16),
-        )
-
-        # --- Buttons ---
-        assert self.btn_evolution is not None
-        assert self.btn_step is not None
-        assert self.btn_pause is not None
-        assert self.btn_save is not None
-        assert self.btn_load is not None
-        assert self.btn_view_3d is not None
-
-        self.btn_evolution.draw(surface, fonts["medium"])
-        self.btn_step.draw(surface, fonts["medium"])
-        self.btn_pause.draw(surface, fonts["medium"])
-        self.btn_save.draw(surface, fonts["medium"])
-        self.btn_view_3d.draw(surface, fonts["medium"])
-        self.btn_load.draw(surface, fonts["medium"])
+    def _calc_height(self) -> int:
+        """Return the total pixel height of this sub-panel."""
+        return 25 + self.evolution_accordion.rect.height
 
     # ------------------------------------------------------------------
-    # Internal helpers that delegate sizing to the button factory so
-    # layout arithmetic stays consistent with the parent panel.
+    # Draw
     # ------------------------------------------------------------------
 
-    def _button_h(self) -> int:
-        """Button height used for y-advance calculations."""
-        return 22
+    def draw(self, surface: pygame.Surface) -> None:
+        """Draw the evolution section onto *surface*."""
 
-    def _button_gap(self) -> int:
-        """Vertical gap between button rows."""
-        return 4
+        self.evolution_accordion.draw(surface)

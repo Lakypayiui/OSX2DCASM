@@ -49,6 +49,7 @@ class GraphWidget(BaseWidget):
         self,
         rect: tuple[int, int, int, int],
         data_ref: dict[str, list[float]],
+        font: pygame.font.Font,
         title: str = "Graph",
         xlabel: str = "Time (steps)",
         ylabel: str = "Value",
@@ -71,6 +72,7 @@ class GraphWidget(BaseWidget):
             bg_color: Background colour of the graph area.
         """
         self.rect = pygame.Rect(rect)
+        self.font = font
         self.data_ref = data_ref
         self.title = title
         self.xlabel = xlabel
@@ -95,6 +97,7 @@ class GraphWidget(BaseWidget):
             self.btn_export_img = Button(
                 rect=(self.rect.right - btn_w * 2 - gap - 16, y, btn_w, btn_h),
                 label="Save PNG",
+                font=self.font,
                 toggle=False,
                 bg=(70, 70, 80),
                 fg=(240, 240, 240),
@@ -102,6 +105,7 @@ class GraphWidget(BaseWidget):
             self.btn_export_csv = Button(
                 rect=(self.rect.right - btn_w - 8, y, btn_w, btn_h),
                 label="Export CSV",
+                font=self.font,
                 toggle=False,
                 bg=(70, 70, 80),
                 fg=(240, 240, 240),
@@ -143,12 +147,11 @@ class GraphWidget(BaseWidget):
     # Drawing
     # ------------------------------------------------------------------
 
-    def draw(self, surf: pygame.Surface, font: pygame.font.Font) -> None:
+    def draw(self, surf: pygame.Surface) -> None:
         """Draw the full widget onto the target surface.
 
         Args:
             surf: Target pygame surface (usually the screen).
-            font: Font used for button labels.
         """
         if self.dirty or self.graph_surface is None:
             self._draw_graph()
@@ -159,9 +162,9 @@ class GraphWidget(BaseWidget):
 
         # Draw inline export buttons
         if self.btn_export_img:
-            self.btn_export_img.draw(surf, font)
+            self.btn_export_img.draw(surf)
         if self.btn_export_csv:
-            self.btn_export_csv.draw(surf, font)
+            self.btn_export_csv.draw(surf)
 
         # Widget border
         pygame.draw.rect(surf, P_BORDER, self.rect, 1, border_radius=6)

@@ -61,14 +61,14 @@ class LoadSimulationPopup(Popup):
 
             self.buttons.append(
                 (
-                    Button((0, 0, 0, 0), filename[:-4]),
+                    Button((0, 0, 0, 0), filename[:-4], self.fn),
                     filename
                 )
             )
 
             self.delete_buttons.append(
                 (
-                    Button((0, 0, 0, 0), "X"),
+                    Button((0, 0, 0, 0), "X", self.fn),
                     filename
                 )
             )
@@ -276,15 +276,9 @@ class LoadSimulationPopup(Popup):
                 30
             )
 
-            btn.draw(
-                screen,
-                self.fn
-            )
+            btn.draw(screen)
 
-            del_btn.draw(
-                screen,
-                self.fn
-            )
+            del_btn.draw(screen)
 
         screen.set_clip(old_clip)
 

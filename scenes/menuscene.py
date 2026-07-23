@@ -32,28 +32,32 @@ class MenuScene:
 
         self.input_width: InputBox = InputBox(
             (center_x - 110, 270, 220, 42),
+            self.ftext,
             "100",
             numeric_only=True
         )
 
         self.input_height: InputBox = InputBox(
             (center_x - 110, 340, 220, 42),
+            self.ftext,
             "100",
             numeric_only=True
         )
 
-        # Botones
+        # Buttons
         self.btn_create: Button = Button(
             (center_x - 110, 430, 220, 40),
             "Create Space",
+            self.ftext,
             toggle=False,
             bg=(45, 120, 60),
             bg_on=(60, 160, 80)
         )
 
         self.btn_settings: Button = Button(
-            (self.width- 140, self.height- 60, 110, 32),
+            (self.width - 140, self.height - 60, 110, 32),
             "Settings",
+            self.fsmall,
             toggle=False,
             bg=(55, 55, 70),
             bg_on=(80, 80, 100)
@@ -282,12 +286,12 @@ class MenuScene:
         self.screen.blit(htxt, (self.width // 2 - 110, 315))
 
         # Inputs
-        self.input_width.draw(self.screen, self.ftext)
-        self.input_height.draw(self.screen, self.ftext)
+        self.input_width.draw(self.screen)
+        self.input_height.draw(self.screen)
 
         # Buttons
-        self.btn_create.draw(self.screen, self.ftext)
-        self.btn_settings.draw(self.screen, self.fsmall)
+        self.btn_create.draw(self.screen)
+        self.btn_settings.draw(self.screen)
 
     def _draw_settings_popup(self) -> None:
         """Draws the settings popup (placeholder)."""

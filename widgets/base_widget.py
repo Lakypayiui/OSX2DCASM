@@ -54,12 +54,11 @@ class BaseWidget(ABC):
         ...
 
     @abstractmethod
-    def draw(self, surf: pygame.Surface, font: pygame.font.Font) -> None:
+    def draw(self, surf: pygame.Surface) -> None:
         """Render the widget onto a surface.
 
         Args:
             surf: Target :class:`pygame.Surface` to draw on.
-            font: Font used to render any text the widget displays.
         """
         ...
 

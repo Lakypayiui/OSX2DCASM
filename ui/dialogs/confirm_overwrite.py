@@ -37,7 +37,8 @@ class ConfirmOverwritePopup(Popup):
                 140,
                 32
             ),
-            "Overwrite"
+            "Overwrite",
+            self.fn,
         )
 
         self.btn_cancel: Button = Button(
@@ -47,7 +48,8 @@ class ConfirmOverwritePopup(Popup):
                 140,
                 32
             ),
-            "Cancel"
+            "Cancel",
+            self.fn,
         )
 
     def open(self) -> None:
@@ -165,12 +167,6 @@ class ConfirmOverwritePopup(Popup):
             )
         )
 
-        self.btn_overwrite.draw(
-            screen,
-            self.fn
-        )
+        self.btn_overwrite.draw(screen)
 
-        self.btn_cancel.draw(
-            screen,
-            self.fn
-        )
+        self.btn_cancel.draw(screen)

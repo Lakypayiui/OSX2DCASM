@@ -13,6 +13,7 @@ class Button(BaseWidget):
         self,
         rect: tuple[int, int, int, int],
         label: str,
+        font: pygame.font.Font,
         toggle: bool = False,
         bg: tuple[int, int, int] = BTN_OFF_BG,
         fg: tuple[int, int, int] = BTN_OFF_FG,
@@ -24,6 +25,7 @@ class Button(BaseWidget):
         Args:
             rect: Position and size as (x, y, width, height).
             label: Button text.
+            font: Font used to render the label.
             toggle: If True, the button stays pressed after clicking.
             bg: Background color when not active.
             fg: Foreground (text) color when not active.
@@ -32,6 +34,7 @@ class Button(BaseWidget):
         """
         self.rect: pygame.Rect   = pygame.Rect(rect)
         self.label: str  = label
+        self.font: pygame.font.Font = font
         self.toggle: bool = toggle
         self.active: bool = False
         self.bg: tuple[int, int, int]     = bg
@@ -65,16 +68,11 @@ class Button(BaseWidget):
                 return True
         return False
 
-    def draw(
-        self,
-        surf: pygame.Surface,
-        font: pygame.font.Font,
-    ) -> None:
+    def draw(self, surf: pygame.Surface) -> None:
         """Draws the button onto a surface.
 
         Args:
             surf: Target surface to draw on.
-            font: Font used to render the label text.
         """
         if self.toggle and self.active:
             bg, fg = self.bg_on, self.fg_on
@@ -84,6 +82,6 @@ class Button(BaseWidget):
             bg, fg = self.bg, self.fg
         pygame.draw.rect(surf, bg, self.rect, border_radius=4)
         pygame.draw.rect(surf, P_BORDER, self.rect, 1, border_radius=4)
-        t: pygame.Surface = font.render(self.label, True, fg)
+        t: pygame.Surface = self.font.render(self.label, True, fg)
         surf.blit(t, (self.rect.centerx - t.get_width()  // 2,
                       self.rect.centery - t.get_height() // 2))

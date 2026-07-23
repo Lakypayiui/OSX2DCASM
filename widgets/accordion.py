@@ -17,6 +17,7 @@ class Accordion(BaseWidget):
         self,
         rect: pygame.Rect,
         label: str,
+        font: pygame.font.Font,
         widgets: List[BaseWidget],
         expanded: bool = False,
         padding: int = 8,
@@ -38,7 +39,13 @@ class Accordion(BaseWidget):
         """
         self.rect = rect.copy()
         self.label = label
+        self.font = font
         self.widgets: List[BaseWidget] = widgets
+
+        if not expanded:
+            for w in self.widgets:
+                w.disable()
+
         self._expanded = expanded
         self.padding = padding
         self.header_height = header_height
@@ -49,7 +56,7 @@ class Accordion(BaseWidget):
             "header_bg": (60, 60, 70),
             "header_hover": (80, 80, 90),
             "header_text": (255, 255, 255),
-            "content_bg": (45, 45, 55),
+            "content_bg": (32,  32,  36),
             "border": (100, 100, 110),
         }
 
@@ -103,6 +110,8 @@ class Accordion(BaseWidget):
         Args:
             widget: The BaseWidget to add.
         """
+        if not self.expanded:
+            widget.disable()
         self.widgets.append(widget)
         self._update_layout()
 
@@ -136,12 +145,11 @@ class Accordion(BaseWidget):
 
         return None
 
-    def draw(self, surf: pygame.Surface, font: pygame.font.Font) -> None:
+    def draw(self, surf: pygame.Surface) -> None:
         """Renders the accordion and its children (if expanded) to the surface.
 
         Args:
             surf: Target surface to draw on.
-            font: Font used for text rendering.
         """
         if not self._visible:
             return
@@ -155,7 +163,7 @@ class Accordion(BaseWidget):
         pygame.draw.rect(surf, self.colors["border"], self._header_rect, width=2)
 
         # Draw label
-        text_surf = font.render(self.label, True, self.colors["header_text"])
+        text_surf = self.font.render(self.label, True, self.colors["header_text"])
         text_rect = text_surf.get_rect(
             midleft=(self._header_rect.x + 15, self._header_rect.centery)
         )
@@ -163,7 +171,7 @@ class Accordion(BaseWidget):
 
         # Draw expand/collapse arrow
         arrow = "▼" if self._expanded else "▶"
-        arrow_surf = font.render(arrow, True, self.colors["header_text"])
+        arrow_surf = self.font.render(arrow, True, self.colors["header_text"])
         arrow_rect = arrow_surf.get_rect(
             midright=(self._header_rect.right - 15, self._header_rect.centery)
         )
@@ -183,7 +191,7 @@ class Accordion(BaseWidget):
             # Draw child widgets
             for widget in self.widgets:
                 if widget.visible:
-                    widget.draw(surf, font)
+                    widget.draw(surf)
 
     # ------------------------------------------------------------------
     # Internal methods
@@ -199,24 +207,23 @@ class Accordion(BaseWidget):
             self.rect.height = self.header_height
             return
 
-        # Position child widgets
-        y = self.rect.y + self.header_height + self.content_padding
-        content_width = self.rect.width - 2 * self.padding
+        content_top = self.rect.y + self.header_height + self.content_padding
+
+        # Lowest point reached by any widget
+        max_bottom = content_top
 
         for widget in self.widgets:
-            if not hasattr(widget, 'rect'):
+            if not hasattr(widget, "rect"):
                 continue
+            max_bottom = max(max_bottom, widget.rect.bottom)
 
-            widget.rect.x = self.rect.x + self.padding
-            widget.rect.y = y
-            widget.rect.width = content_width
-
-            y += widget.rect.height + self.content_padding
-
-        # Update total height
-        total_content_h = y - (self.rect.y + self.header_height + self.content_padding)
+        # Update total height using the lowest widget
+        total_content_h = max_bottom - content_top
         self.rect.height = (
-            self.header_height + self.content_padding + total_content_h + self.padding
+            self.header_height
+            + self.content_padding
+            + total_content_h
+            + self.padding
         )
 
     def _sync_children_enabled(self) -> None:

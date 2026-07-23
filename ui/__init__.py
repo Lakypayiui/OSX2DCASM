@@ -8,8 +8,9 @@ from .dialogs import (
 from .panels import (
     ColorControls,
     EvolutionControls,
-    KernelPanel,
+    InfoControls,
     PopulationControls,
+    RuleControls,
     RulePanel,
     SimulationPanel,
 )
@@ -18,10 +19,11 @@ __all__ = [
     "ColorControls",
     "ConfirmOverwritePopup",
     "EvolutionControls",
-    "KernelPanel",
+    "InfoControls",
     "LoadRulePopup",
     "LoadSimulationPopup",
     "PopulationControls",
+    "RuleControls",
     "RulePanel",
     "SaveRulePopup",
     "SaveSimulationPopup",

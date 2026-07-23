@@ -13,91 +13,78 @@ from widgets.rgbselector import RGBSelector
 class ColorControls:
     """RGB color selectors for background, grid, and cell colours.
 
-    Exposes the ``bg_color_selectors`` list and ``y_theme_lbl`` so the
-    parent :class:`SimulationPanel` can copy references for backward
-    compatibility.
-
     Attributes:
         y_theme_lbl: Y-position of the theme colour labels.
-        bg_color_selectors: List of :class:`RGBSelector` widgets, one per
-            theme element (Background, Grid, Cell).
+        _height: Total height of this sub-panel.
+        bg_color_selectors: List of :class:`RGBSelector` widgets.
     """
 
-    # Theme keys for lookup; display labels used in draw().
     _THEME_KEYS = ["bg", "grid", "cell"]
     _THEME_LABELS = ["Background", "Grid", "Cell"]
 
-    def __init__(self, theme: dict[str, tuple[int, int, int]], width: int) -> None:
-        """Initializes colour controls.
-
-        Args:
-            theme: Mapping of theme element names to their default RGB
-                values (e.g. ``{"bg": (0,0,0), "grid": ..., "cell": ...}``).
-            width: width of the panel.
-        """
+    def __init__(
+        self,
+        theme: dict[str, tuple[int, int, int]],
+        width: int,
+        fonts: dict[str, pygame.font.Font],
+    ) -> None:
         self._theme = theme
         self.width = width
+        self.fonts = fonts
 
+        self._height: int = 0
         self.y_theme_lbl: int = 0
         self.bg_color_selectors: list[RGBSelector] = []
         self._labels: list[Label] = []
+        self.color_accordion: Accordion | None = None
+
+    # ------------------------------------------------------------------
+    # Layout
+    # ------------------------------------------------------------------
 
     def _create_theme_section(self, y: int) -> int:
-        """Builds the colour-selector widgets at the given y offset.
+        """Build widgets at *y* and return the next free y."""
+        return self.update_layout(y, True)
+        
 
-        Args:
-            y: Starting vertical position (pixels from top of panel).
-
-        Returns:
-            The next available y position after the section.
-        """
+    def update_layout(self, y: int, create: bool = False) -> int:
+        """Reposition all widgets starting at *y*, recalculate height and return the next free y."""
         self.y_theme_lbl = y
 
-        y += 13
-
-        self.bg_color_selectors = []
+        self.bg_color_selectors.clear()
         self._labels.clear()
 
-        # Compute column width so selectors span the panel width.
-        csw = (self.width - config.PAD) // len(self._THEME_KEYS) - 2
+        csw = (self.width - config.PAD * 4) // len(self._THEME_KEYS) - 2
 
         for idx, key in enumerate(self._THEME_KEYS):
-            bx = config.PAD + idx * (csw + 2)
-            initial = self._theme[key]
+            bx = config.PAD * 2 + idx * (csw + 2)
             self.bg_color_selectors.append(
-                RGBSelector((bx, y + 50, csw, 80), initial=initial)
+                RGBSelector((bx, y + 70, csw, 80), font=self.fonts["medium"], initial=self._theme[key])
             )
             self._labels.append(
-                Label(
-                    (config.PAD + idx * ((self.width - config.PAD) // 3), y),
-                    self._THEME_LABELS[idx],
-                    config.P_LABEL,
-                )
+                Label((bx, y + 50), self._THEME_LABELS[idx], self.fonts["bold"], config.P_LABEL)
             )
 
         self.color_accordion = Accordion(
             rect=pygame.Rect(config.PAD, y, self.width - config.PAD * 2, 40),
-            label="Color",
-            widgets=self.bg_color_selectors,
-            expanded=False,
+            label="Theme",
+            font=self.fonts["bold"],
+            widgets=self._labels + self.bg_color_selectors,
+            expanded=False if create else self.color_accordion.expanded,
         )
 
-        y += 17 + config.PAD
-        return y
+        self._height = self._calc_height()
+        return self.y_theme_lbl + self._height
 
-    def draw(
-        self,
-        surface: pygame.Surface,
-        fonts: dict[str, pygame.font.Font],
-    ) -> None:
-        """Draws the theme colour-selector section onto *surface*.
+    def _calc_height(self) -> int:
+        """Return the total pixel height of this sub-panel."""
+        return 25 + self.color_accordion.rect.height
 
-        Args:
-            surface: Target surface to render onto (the panel surface).
-            fonts: Mapping of font names (``"medium"``, ``"small"``) to
-                :class:`pygame.font.Font` instances.
-        """
-        for label in self._labels:
-            label.draw(surface, fonts["medium"])
+    # ------------------------------------------------------------------
+    # Draw
+    # ------------------------------------------------------------------
 
-        self.color_accordion.draw(surface, fonts["small"])
+    def draw(self, surface: pygame.Surface) -> None:
+        """Draw the theme colour-selector section onto *surface*."""
+        if self.color_accordion is not None:
+            self.color_accordion.draw(surface)

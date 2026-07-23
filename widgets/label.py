@@ -28,8 +28,9 @@ class Label(BaseWidget):
         self,
         pos: tuple[int, int],
         text: str,
+        font: pygame.font.Font,
         color: tuple[int, int, int] = (255, 255, 255),
-        align: str = "left",
+        align: str = "left"
     ) -> None:
         """Initialise the label.
 
@@ -38,12 +39,14 @@ class Label(BaseWidget):
             text: Text to display.
             color: RGB colour tuple.
             align: ``"left"``, ``"center"``, or ``"right"``.
+            font: Font used to render the text to display.
         """
         # rect is just a position marker; width/height are set on draw.
         self.rect = pygame.Rect(pos[0], pos[1], 0, 0)
         self.text = text
         self.color = color
         self.align = align
+        self.font = font
 
     # ------------------------------------------------------------------
     # BaseWidget interface
@@ -60,7 +63,7 @@ class Label(BaseWidget):
         """
         return None
 
-    def draw(self, surf: pygame.Surface, font: pygame.font.Font) -> None:
+    def draw(self, surf: pygame.Surface) -> None:
         """Render the label onto *surf*.
 
         Args:
@@ -70,7 +73,7 @@ class Label(BaseWidget):
         if not self.visible:
             return
 
-        img = font.render(self.text, True, self.color)
+        img = self.font.render(self.text, True, self.color)
         x, y = self.rect.topleft
 
         if self.align == "right":

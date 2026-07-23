@@ -12,6 +12,7 @@ class Slider(BaseWidget):
     def __init__(
         self,
         rect: tuple[int, int, int, int],
+        font: pygame.font.Font,
         vmin: float = 0.0,
         vmax: float = 1.0,
         value: float = 0.5,
@@ -20,11 +21,13 @@ class Slider(BaseWidget):
 
         Args:
             rect: Position and size as (x, y, width, height).
+            font: Font used to render the value label.
             vmin: Minimum value of the slider range.
             vmax: Maximum value of the slider range.
             value: Initial value of the slider.
         """
         self.rect: pygame.Rect  = pygame.Rect(rect)
+        self.font: pygame.font.Font = font
         self.vmin: float  = vmin
         self.vmax: float = vmax
         self.value: float = value
@@ -61,16 +64,11 @@ class Slider(BaseWidget):
         t: float = (mx - self.rect.x) / max(self.rect.width, 1)
         self.value = self.vmin + max(0.0, min(1.0, t)) * (self.vmax - self.vmin)
 
-    def draw(
-        self,
-        surf: pygame.Surface,
-        font: pygame.font.Font,
-    ) -> None:
+    def draw(self, surf: pygame.Surface) -> None:
         """Draws the slider onto a surface.
 
         Args:
             surf: Target surface to draw on.
-            font: Font used to render the value label.
         """
         pygame.draw.rect(surf, (45, 45, 52), self.rect, border_radius=4)
         fw: int = int(self.norm * self.rect.width)
@@ -81,6 +79,6 @@ class Slider(BaseWidget):
         tx: int = self.rect.x + fw
         pygame.draw.circle(surf, (215, 215, 215), (tx, self.rect.centery), 7)
         pygame.draw.circle(surf, P_BORDER,         (tx, self.rect.centery), 7, 1)
-        t: pygame.Surface = font.render(f"{self.value:.2f}", True, P_LABEL)
+        t: pygame.Surface = self.font.render(f"{self.value:.2f}", True, P_LABEL)
         surf.blit(t, (self.rect.right + 6,
                       self.rect.centery - t.get_height() // 2))

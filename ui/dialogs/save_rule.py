@@ -35,7 +35,8 @@ class SaveRulePopup(Popup):
                 self.rect.y + 70,
                 self.rect.width - 40,
                 32
-            )
+            ),
+            self.fn,
         )
 
         self.btn_save: Button = Button(
@@ -45,7 +46,8 @@ class SaveRulePopup(Popup):
                 120,
                 32
             ),
-            "Save"
+            "Save",
+            self.fn,
         )
 
         self.result: Optional[str] = None
@@ -170,10 +172,7 @@ class SaveRulePopup(Popup):
             )
         )
 
-        self.input_name.draw(
-            screen,
-            self.fn
-        )
+        self.input_name.draw(screen)
 
         cell_size: int = 12
 
@@ -204,7 +203,4 @@ class SaveRulePopup(Popup):
 
                 pygame.draw.rect(screen, color, r)
 
-        self.btn_save.draw(
-            screen,
-            self.fn
-        )
+        self.btn_save.draw(screen)

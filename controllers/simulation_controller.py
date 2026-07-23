@@ -166,12 +166,22 @@ class SimulationController:
                 event.pos = (event.pos[0], event.pos[1] + self.panel.scroll_y)
 
             # Accordions
-            self.panel.color_accordion.handle_event(event)
+            if self.panel.rule_accordion.handle_event(event):
+                self.panel._update_layout()
+
+            if self.panel.population_accordion.handle_event(event):
+                self.panel._update_layout()
+
+            if self.panel.evolution_accordion.handle_event(event):
+                self.panel._update_layout()
+
+            if self.panel.color_accordion.handle_event(event):
+                self.panel._update_layout()
 
             # Kernel
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
 
-                self.panel.kernel_panel.handle_click(event.pos)
+                self.panel.kernel_panel.handle_event(event)
 
             # Rule matrix
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:

@@ -44,7 +44,8 @@ class Popup:
                 30,
                 30
             ),
-            "X"
+            "X",
+            self.fb,
         )
 
     def open(self) -> None:
@@ -124,4 +125,4 @@ class Popup:
             )
         )
 
-        self.btn_close.draw(screen, self.fb)
+        self.btn_close.draw(screen)

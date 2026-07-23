@@ -81,12 +81,14 @@ class LoadRulePopup(Popup):
 
             load_btn: Button = Button(
                 (0, 0, 0, 0),
-                preset["name"]
+                preset["name"],
+                self.fn,
             )
 
             delete_btn: Button = Button(
                 (0, 0, 0, 0),
-               "X"
+               "X",
+                self.fn,
             )
 
             self.buttons.append((load_btn, preset))
@@ -244,9 +246,9 @@ class LoadRulePopup(Popup):
                 30
             )
 
-            btn.draw(screen, self.fn)
+            btn.draw(screen)
 
-            del_btn.draw(screen, self.fn)
+            del_btn.draw(screen)
     
         screen.set_clip(old_clip)
 

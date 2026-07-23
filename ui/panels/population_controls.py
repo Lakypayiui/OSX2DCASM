@@ -7,6 +7,7 @@ from typing import Callable
 import pygame
 
 from core import config
+from widgets.accordion import Accordion
 from widgets.button import Button
 from widgets.label import Label
 from widgets.slider import Slider
@@ -22,6 +23,7 @@ class PopulationControls:
     Attributes:
         y_population_hdr: Y-position of the "Population" section header.
         y_density_lbl: Y-position of the density label.
+        _height: Total height of this sub-panel.
         btn_random_config: Randomize-config button.
         btn_clear_view: Clear-view button.
         slider_density: Density slider widget.
@@ -35,106 +37,84 @@ class PopulationControls:
         self,
         create_button: Callable[..., Button],
         buttons_list: list[Button],
-        width: int
+        width: int,
+        fonts: dict[str, pygame.font.Font],
     ) -> None:
-        """Initializes population controls.
-
-        Args:
-            create_button: Factory callable with the same signature as
-                :meth:`SimulationPanel._create_button`.
-            buttons_list: The panel's global button list that every created
-                button is appended to (for hit-testing).
-            width: width of the panel.
-        """
         self.width = width
-
+        self.fonts = fonts
         self._create_button = create_button
         self._buttons_list = buttons_list
 
+        self._height: int = 0
         self.y_population_hdr: int = 0
         self.y_density_lbl: int = 0
 
         self.btn_random_config: Button | None = None
         self.btn_clear_view: Button | None = None
         self.slider_density: Slider | None = None
-
-        self._header_label: Label | None = None
         self._density_label: Label | None = None
+        self.population_accordion: Accordion | None = None
+
+    # ------------------------------------------------------------------
+    # Layout
+    # ------------------------------------------------------------------
 
     def _create_population_section(self, y: int) -> int:
-        """Builds population control widgets at the given y offset.
+        """Build widgets at *y* and return the next free y."""
+        return self.update_layout(y, True)
 
-        Args:
-            y: Starting vertical position (pixels from top of panel).
+    def update_layout(self, y: int, create: bool = False) -> int:
+        """Reposition all widgets starting at *y*, recalculate height and return the next free y."""
+        start_y = y
 
-        Returns:
-            The next available y position after the section.
-        """
+        self.population_accordion = Accordion(
+            rect=pygame.Rect(config.PAD, y, self.width - config.PAD * 2, 40),
+            label="Population",
+            font=self.fonts["bold"],
+            widgets=[],
+            expanded=False if create else self.population_accordion.expanded,
+        )
         self.y_population_hdr = y
 
-        y += 25
+        y += 50
 
         self.btn_random_config = self._create_button("Random config", 0, y)
         self._buttons_list.append(self.btn_random_config)
+        self.population_accordion.add_widget(self.btn_random_config)
 
         self.btn_clear_view = self._create_button("Clear view", 1, y)
         self._buttons_list.append(self.btn_clear_view)
-
+        self.population_accordion.add_widget(self.btn_clear_view)
         y += self.BUTTON_HEIGHT + self.BUTTON_GAP + 4
 
-        # --- Density slider ---
         self.y_density_lbl = y
-
-        self._header_label = Label(
-            (config.PAD, self.y_population_hdr), "Population", config.P_FG
+        self._density_label = Label(
+            (config.PAD * 2, self.y_density_lbl), "Density Population",
+            self.fonts["small"], config.P_LABEL,
         )
+        self.population_accordion.add_widget(self._density_label)
+
         y += 13
 
-        self._density_label = Label(
-            (config.PAD, self.y_density_lbl), "Density Population", config.P_LABEL
-        )
-
         self.slider_density = Slider(
-            (config.PAD, y, self.width - 65, 12),
-            value=0.5,
+            (config.PAD * 2, y, self.width - 68, 12),
+            self.fonts["small"],
+            value=0.5 if create else self.slider_density.value,
         )
+        self.population_accordion.add_widget(self.slider_density)
 
-        y += 40 + config.PAD
+        self._height = self._calc_height()
+        return start_y + self._height
 
-        return y
+    def _calc_height(self) -> int:
+        """Return the total pixel height of this sub-panel."""
+        return 25 + self.population_accordion.rect.height
 
-    def draw(
-        self,
-        surface: pygame.Surface,
-        fonts: dict[str, pygame.font.Font],
-    ) -> None:
-        """Draws the population section onto *surface*.
+    # ------------------------------------------------------------------
+    # Draw
+    # ------------------------------------------------------------------
 
-        Args:
-            surface: Target surface to render onto (the panel surface).
-            fonts: Mapping of font names (``"bold"``, ``"medium"``,
-                ``"small"``) to :class:`pygame.font.Font` instances.
-        """
-        # --- Section header ---
-        assert self._header_label is not None
-        self._header_label.draw(surface, fonts["bold"])
-
-        pygame.draw.line(
-            surface,
-            config.P_BORDER,
-            (config.PAD, self.y_population_hdr + 16),
-            (self.width - config.PAD, self.y_population_hdr + 16),
-        )
-
-        # --- Buttons ---
-        assert self.btn_random_config is not None
-        assert self.btn_clear_view is not None
-        assert self.slider_density is not None
-
-        self.btn_random_config.draw(surface, fonts["medium"])
-        self.btn_clear_view.draw(surface, fonts["medium"])
-
-        # --- Density label + slider ---
-        assert self._density_label is not None
-        self._density_label.draw(surface, fonts["small"])
-        self.slider_density.draw(surface, fonts["small"])
+    def draw(self, surface: pygame.Surface) -> None:
+        """Draw the population section onto *surface*."""
+        if self.population_accordion is not None:
+            self.population_accordion.draw(surface)

@@ -10,6 +10,7 @@ class InputBox(BaseWidget):
     def __init__(
         self,
         rect: tuple[int, int, int, int],
+        font: pygame.font.Font,
         text: str = "",
         numeric_only: bool = False,
     ) -> None:
@@ -17,10 +18,12 @@ class InputBox(BaseWidget):
 
         Args:
             rect: Position and size as (x, y, width, height).
+            font: Font used to render the text.
             text: Initial text content.
             numeric_only: If True, only digits are accepted.
         """
         self.rect: pygame.Rect = pygame.Rect(rect)
+        self.font: pygame.font.Font = font
         self.text: str = text
         self.active: bool = False
         self.numeric_only: bool = numeric_only
@@ -58,16 +61,11 @@ class InputBox(BaseWidget):
                     if ev.unicode.isprintable():
                         self.text += ev.unicode
 
-    def draw(
-        self,
-        surf: pygame.Surface,
-        font: pygame.font.Font,
-    ) -> None:
+    def draw(self, surf: pygame.Surface) -> None:
         """Draws the input box onto a surface.
 
         Args:
             surf: Target surface to draw on.
-            font: Font used to render the text.
         """
         pygame.draw.rect(surf, self.bg, self.rect, border_radius=6)
 
@@ -80,7 +78,7 @@ class InputBox(BaseWidget):
             border_radius=6
         )
 
-        txt: pygame.Surface = font.render(self.text, True, self.fg)
+        txt: pygame.Surface = self.font.render(self.text, True, self.fg)
         surf.blit(
             txt,
             (
