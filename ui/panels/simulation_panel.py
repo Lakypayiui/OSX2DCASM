@@ -67,7 +67,8 @@ class SimulationPanel:
 
     def _create_button(
         self, label: str, column: int, y: int, toggle: bool = False,
-        bg: tuple = config.BTN_OFF_BG, bg_on: tuple = config.BTN_ON_BG,
+        bg: tuple = config.BTN_OFF_BG, bg_on: tuple = config.BTN_ON_BG, 
+        bg_hov: tuple = config.BTN_HOV
     ) -> Button:
         return Button(
             (config.PAD * 2 + column * (self.BUTTON_WIDTH + self.BUTTON_GAP), y,

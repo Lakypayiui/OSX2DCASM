@@ -158,7 +158,8 @@ class SimulationController:
                 self.panel.scroll_y -= event.y * 30  
                 self.panel._clamp_scroll()
 
-        self._handle_panel_toggle(event)
+        if self._handle_panel_toggle(event):
+            return False
 
         if self.panel.btn_return_panel.handle_event(event):
             return True
@@ -225,7 +226,7 @@ class SimulationController:
             self.panel.graph_population.handle_event(event)
             self.panel.graph_global_entropy.handle_event(event)
     
-    def _handle_panel_toggle(self, event: pygame.event.Event) -> None:
+    def _handle_panel_toggle(self, event: pygame.event.Event) -> bool:
         """Handles toggling the side panel visibility.
 
         If the hide/show button is pressed, the panel visibility is toggled and
@@ -235,11 +236,11 @@ class SimulationController:
             event: The pygame event to process.
 
         Returns:
-            None.
+            bool.
         """
 
         if not self.panel.btn_hide_panel.handle_event(event):
-            return
+            return False
 
         self.panel.visible = not self.panel.visible
 
@@ -253,6 +254,8 @@ class SimulationController:
             self.panel.btn_hide_panel.icon = pygame.image.load("assets/icons/double_arrow_rigth.png").convert_alpha()
             self.panel.btn_hide_panel.rect.x = config.PAD
             self.panel.btn_return_panel.rect.y = config.PAD * 2 + self.panel.btn_hide_panel.rect.height 
+
+        return True
 
     def _on_btn(self, b) -> None:
         """Handles a button click from the simulation panel.

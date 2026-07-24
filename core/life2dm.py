@@ -176,7 +176,7 @@ class Life2DM:
             scroll_y: Vertical scroll offset in cells.
         """
         w_limit, h_limit = target_surf.get_size()
-        rgb = np.full((h_limit, w_limit, 3), theme["bg"], dtype=np.uint8)
+        rgba = np.full((h_limit, w_limit, 4), 0, dtype=np.uint8)
 
         # 1. TOTAL world size in pixels (may be much larger than screen)
         total_w_px = self.width * config.CELL_PX
@@ -211,10 +211,16 @@ class Life2DM:
 
             # Safety clipping to avoid painting outside the RGB array
             if 0 <= px < w_limit - config.CELL_PX and 0 <= py < h_limit - config.CELL_PX:
-                rgb[py : py + config.CELL_PX - 1, px : px + config.CELL_PX - 1] = theme["cell"]
+                rgba[py:py+config.CELL_PX-1, px:px+config.CELL_PX-1, :3] = theme["cell"]
+                rgba[py:py+config.CELL_PX-1, px:px+config.CELL_PX-1, 3] = 255
 
         # 6. Flush to screen
-        pygame.surfarray.blit_array(target_surf, np.ascontiguousarray(rgb.swapaxes(0, 1)))
+        surface_array = np.ascontiguousarray(rgba.swapaxes(0, 1))
+        temp_surf = pygame.surfarray.make_surface(surface_array[:, :, :3])
+        temp_surf = temp_surf.convert_alpha()
+        pygame.surfarray.pixels_alpha(temp_surf)[:] = surface_array[:, :, 3]
+
+        target_surf.blit(temp_surf, (0, 0))
 
         # 7. Grid (only on visible world area)
         # Draw lines from the actual world start to its end

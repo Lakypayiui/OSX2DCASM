@@ -1,3 +1,4 @@
+import random
 import sys
 import numpy as np
 import pygame
@@ -29,6 +30,7 @@ class SimulationScene:
         screen: pygame.Surface,
         width: int,
         height: int,
+        bg_cells,
     ) -> None:
         """Initializes the simulation scene.
 
@@ -50,9 +52,9 @@ class SimulationScene:
         # State
         self.running: bool = True
         self.theme: dict[str, tuple[int, int, int]] = {
-            "bg": (13, 13, 13),
-            "grid": (25, 40, 25),
-            "cell": (0, 255, 100),
+            "bg": (8, 8, 12),
+            "grid": (18, 18, 26),
+            "cell": (90, 255, 255),
         }
 
         # Automaton
@@ -100,6 +102,9 @@ class SimulationScene:
             self.grid_height
         )
 
+        self.bg_cells = bg_cells
+        self.automaton_layer = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+
     def run(self) -> bool:
         """Runs the main simulation loop."""
 
@@ -114,7 +119,9 @@ class SimulationScene:
             self.panel.graph_global_entropy.set_dirty()
             self.panel.graph_block_entropy.set_dirty()
 
+            self.update()
             self.draw()
+        return self.bg_cells
 
     def events(self) -> bool:
         """Processes pygame events for the simulation."""
@@ -144,6 +151,16 @@ class SimulationScene:
             if self.simulation_controller.handle_event(ev):
                 return True
                
+    def update(self) -> None:
+        """Updates the animated background cells."""
+
+        for c in self.bg_cells:
+
+            c["y"] += c["speed"]
+
+            if c["y"] > self.height:
+                c["y"] = -10
+                c["x"] = random.randint(0, self.width)
 
     def draw(self) -> None:
         """Draws the complete simulation screen."""
@@ -153,12 +170,24 @@ class SimulationScene:
 
         self.screen.fill((10, 10, 12))
 
+        for c in self.bg_cells:
+
+            s: pygame.Surface = pygame.Surface((c["size"], c["size"]), pygame.SRCALPHA)
+
+            s.fill((90, 180, 255, c["alpha"]))
+
+            self.screen.blit(s, (c["x"], c["y"]))
+
+        self.automaton_layer.fill((0, 0, 0, 0))
+
         self.life.draw(
-            self.screen,
+            self.automaton_layer,
             self.theme,
             self.camera.scroll_x,
             self.camera.scroll_y
         )
+
+        self.screen.blit(self.automaton_layer, (0, 0))
 
         self.panel.draw(self.screen)
 

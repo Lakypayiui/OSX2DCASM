@@ -83,7 +83,7 @@ class EvolutionControls:
 
         y += 50
 
-        self.btn_evolution = self._create_button("Start", 0, y, toggle=True, bg=(45, 120, 60))
+        self.btn_evolution = self._create_button("Start", 0, y, toggle=True, bg=(45, 120, 60), bg_hov=(65, 150, 80))
         self._buttons_list.append(self.btn_evolution)
         self.evolution_accordion.add_widget(self.btn_evolution)
 
